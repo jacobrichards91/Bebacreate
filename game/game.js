@@ -9,7 +9,12 @@ const state = {
   completing:  false,
   spinAnim:    null,       // Web Animations API ref for snap-layer spin
   fadeRafId:   null,       // rAF id for canvas fade — cancelled on level reset
+  playMode:    false,      // tap-to-drive mode active after completion
+  playRafId:   null,       // rAF id for play-mode animation loop
 };
+
+// Play-mode robot position (module-level, not part of reset-able state)
+let _playX = 0, _playY = 0, _playTX = 0, _playTY = 0;
 
 const SNAP_DIST   = 55;
 const ENCOURAGE   = ['Oops! Try again! 😅', 'Almost! 💪', 'Keep trying! 🌟', 'So close! 🎯', "You've got this! 🤖"];
@@ -186,6 +191,7 @@ function initLevel() {
   const level = LEVELS[state.levelIdx];
 
   // cancel any leftover animations from previous level
+  stopPlayMode();
   if (state.spinAnim) { try { state.spinAnim.cancel(); } catch(e){} state.spinAnim = null; }
   if (state.fadeRafId) { cancelAnimationFrame(state.fadeRafId); state.fadeRafId = null; }
   snapLayer.style.transform = '';
@@ -453,7 +459,7 @@ async function startCompletionSequence() {
   cleanOverlay.classList.remove('hidden');
 
   const isLast = state.levelIdx === LEVELS.length - 1;
-  cleanText.textContent  = isLast ? "You're a Vacuum Expert! 🤖" : 'CLEAN! ✨';
+  cleanText.textContent  = isLast ? 'Robot Champion! 🏆' : 'CLEAN! ✨';
   cleanText.style.fontSize = isLast ? 'clamp(2rem, 8vw, 4.5rem)' : '';
 
   // award star
@@ -551,58 +557,104 @@ function startDrivingAnimation() {
     ctx2d.fillStyle = 'rgba(173,232,244,0.65)';
     ctx2d.fill();
 
-    // mini vacuum body
-    ctx2d.beginPath();
-    ctx2d.arc(pos.x, pos.y, 20, 0, Math.PI * 2);
-    ctx2d.fillStyle = '#3A3A3A';
-    ctx2d.fill();
-
-    ctx2d.beginPath();
-    ctx2d.arc(pos.x, pos.y, 15, 0, Math.PI * 2);
-    ctx2d.fillStyle = '#565656';
-    ctx2d.fill();
-
-    // glowing eyes
-    ctx2d.beginPath();
-    ctx2d.arc(pos.x - 6, pos.y - 5, 3, 0, Math.PI * 2);
-    ctx2d.fillStyle = '#00FF88';
-    ctx2d.fill();
-    ctx2d.beginPath();
-    ctx2d.arc(pos.x + 6, pos.y - 5, 3, 0, Math.PI * 2);
-    ctx2d.fillStyle = '#00FF88';
-    ctx2d.fill();
+    // mini vacuum — use level colour so it matches the built robot
+    drawMiniRobot(pos.x, pos.y);
 
     if (prog < 1) {
       requestAnimationFrame(frame);
     } else {
       stopHum();
-      // fade canvas to transparent using fillRect (correct approach)
-      fadeCanvas();
+      startPlayMode(pos.x, pos.y);
     }
   }
 
   requestAnimationFrame(frame);
 }
 
-function fadeCanvas() {
-  const W = canvas.width, H = canvas.height;
-  let alpha = 1;
+// ══════════════════════════════════════════════════════════════════════════════
+// Play mode — tap anywhere on the canvas to drive the robot there
+// ══════════════════════════════════════════════════════════════════════════════
+function drawMiniRobot(x, y) {
+  const c = LEVEL_COLORS[state.levelIdx];
+  ctx2d.beginPath();
+  ctx2d.arc(x, y, 20, 0, Math.PI * 2);
+  ctx2d.fillStyle = c.body;
+  ctx2d.fill();
+  ctx2d.beginPath();
+  ctx2d.arc(x, y, 15, 0, Math.PI * 2);
+  ctx2d.fillStyle = c.light;
+  ctx2d.fill();
+  [[- 6, -5], [6, -5]].forEach(([dx, dy]) => {
+    ctx2d.beginPath();
+    ctx2d.arc(x + dx, y + dy, 3, 0, Math.PI * 2);
+    ctx2d.fillStyle = '#00FF88';
+    ctx2d.fill();
+  });
+}
 
-  function step() {
-    if (state.fadeRafId === null) return; // cancelled by level reset
-    alpha -= 0.045;
-    if (alpha <= 0) {
-      ctx2d.clearRect(0, 0, W, H);
-      state.fadeRafId = null;
-      return;
-    }
-    ctx2d.fillStyle = `rgba(245,242,237,${Math.min(0.20, 0.04 + (1 - alpha) * 0.18)})`;
-    ctx2d.fillRect(0, 0, W, H);
-    state.fadeRafId = requestAnimationFrame(step);
+function startPlayMode(startX, startY) {
+  const W = canvas.width, H = canvas.height;
+  _playX = startX ?? W / 2;
+  _playY = startY ?? H / 2;
+  _playTX = _playX;
+  _playTY = _playY;
+  state.playMode = true;
+  canvas.style.pointerEvents = 'auto';
+  canvas.style.cursor = 'crosshair';
+  ctx2d.clearRect(0, 0, W, H);
+  drawMiniRobot(_playX, _playY);
+}
+
+function stopPlayMode() {
+  if (!state.playMode) return;
+  state.playMode = false;
+  if (state.playRafId) { cancelAnimationFrame(state.playRafId); state.playRafId = null; }
+  canvas.style.pointerEvents = 'none';
+  canvas.style.cursor = '';
+  ctx2d.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function tickPlayMode() {
+  if (!state.playMode) return;
+  const dx = _playTX - _playX;
+  const dy = _playTY - _playY;
+  const d  = Math.hypot(dx, dy);
+
+  if (d < 1.5) {
+    state.playRafId = null;
+    return;
   }
 
-  setTimeout(() => { state.fadeRafId = requestAnimationFrame(step); }, 300);
+  const speed = Math.min(d * 0.12, 10);
+  _playX += (dx / d) * speed;
+  _playY += (dy / d) * speed;
+
+  // fade old trail
+  ctx2d.fillStyle = 'rgba(245,242,237,0.18)';
+  ctx2d.fillRect(0, 0, canvas.width, canvas.height);
+
+  // trail glow dot
+  ctx2d.beginPath();
+  ctx2d.arc(_playX, _playY, 12, 0, Math.PI * 2);
+  ctx2d.fillStyle = 'rgba(173,232,244,0.45)';
+  ctx2d.fill();
+
+  drawMiniRobot(_playX, _playY);
+  state.playRafId = requestAnimationFrame(tickPlayMode);
 }
+
+// Single shared canvas listener — only active when playMode is true
+canvas.addEventListener('pointerdown', e => {
+  if (!state.playMode) return;
+  const r     = canvas.getBoundingClientRect();
+  const scaleX = canvas.width  / r.width;
+  const scaleY = canvas.height / r.height;
+  _playTX = (e.clientX - r.left) * scaleX;
+  _playTY = (e.clientY - r.top)  * scaleY;
+  if (!state.playRafId) {
+    state.playRafId = requestAnimationFrame(tickPlayMode);
+  }
+});
 
 // ══════════════════════════════════════════════════════════════════════════════
 // Next Level / Restart
