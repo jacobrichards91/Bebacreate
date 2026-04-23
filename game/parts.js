@@ -300,6 +300,96 @@ const PART_DEFS = {
         <circle cx="52" cy="46" r="2" fill="${c.bump}"/>
       </svg>`;
     }
+  },
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // Brand logo badges — one per level, snaps onto the bumper face.
+  // bx=0, by=-90: centred on the bumper (bumper centre is by=-98).
+  // z=9: always renders on top of the bumper.
+  // These use fixed brand colours and ignore the level palette (c param).
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // ── iRobot (Level 1) ────────────────────────────────────────────────────────
+  logoIrobot: {
+    label:'iRobot Logo', bx:0, by:-90, w:90, h:26, z:9,
+    svg() {
+      return `<svg width="90" height="26" viewBox="0 0 90 26" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="88" height="24" rx="5" fill="#CE2029" stroke="#901015" stroke-width="1.5"/>
+        <!-- "i" letterform: circle dot (robot eye) + stem -->
+        <circle cx="12" cy="8"  r="3.5" fill="white"/>
+        <rect   x="10" y="13" width="4" height="9" rx="1.5" fill="white"/>
+        <!-- "Robot" in bold italic -->
+        <text x="21" y="20" font-family="Nunito,'Arial Black',Arial,sans-serif"
+              font-size="13" font-weight="900" font-style="italic" fill="white">Robot</text>
+      </svg>`;
+    }
+  },
+
+  // ── eufy (Level 2) ──────────────────────────────────────────────────────────
+  logoEufy: {
+    label:'eufy Logo', bx:0, by:-90, w:90, h:26, z:9,
+    svg() {
+      return `<svg width="90" height="26" viewBox="0 0 90 26" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="88" height="24" rx="5" fill="#111111" stroke="#18C5A8" stroke-width="1.5"/>
+        <!-- "e" mark: left-open circle + horizontal crossbar -->
+        <circle cx="13" cy="13" r="7" fill="none" stroke="#18C5A8" stroke-width="2.5"/>
+        <rect   x="13" y="6"  width="8" height="14" fill="#111111"/><!-- clip right half -->
+        <line   x1="6" y1="13" x2="20" y2="13" stroke="#18C5A8" stroke-width="2.5"/>
+        <!-- "ufy" completing the word -->
+        <text x="24" y="19" font-family="Nunito,Arial,sans-serif"
+              font-size="13" font-weight="700" fill="#18C5A8">ufy</text>
+      </svg>`;
+    }
+  },
+
+  // ── Roborock (Level 3) ──────────────────────────────────────────────────────
+  logoRoborock: {
+    label:'Roborock Logo', bx:0, by:-90, w:90, h:26, z:9,
+    svg() {
+      return `<svg width="90" height="26" viewBox="0 0 90 26" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="88" height="24" rx="5" fill="#E22726" stroke="#A01515" stroke-width="1.5"/>
+        <!-- "r" letterform: vertical stem + bump arc + angular leg -->
+        <line x1="9"  y1="7"    x2="9"  y2="19"   stroke="white" stroke-width="3"   stroke-linecap="round"/>
+        <path d="M 9,7 Q 17,7 17,11 Q 17,13.5 9,13.5"
+              fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="13" y1="13.5" x2="17" y2="19"   stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- "oborock" completing the word -->
+        <text x="22" y="19" font-family="Nunito,Arial,sans-serif"
+              font-size="11.5" font-weight="700" fill="white">oborock</text>
+      </svg>`;
+    }
+  },
+
+  // ── Tapo by TP-Link (Level 4) ───────────────────────────────────────────────
+  logoTapo: {
+    label:'Tapo Logo', bx:0, by:-90, w:90, h:26, z:9,
+    svg() {
+      return `<svg width="90" height="26" viewBox="0 0 90 26" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="88" height="24" rx="5" fill="#0A1628" stroke="#00B140" stroke-width="1.5"/>
+        <!-- "T" as home-roof triangle + vertical line -->
+        <polygon points="13,6 7,14 19,14" fill="none" stroke="#00B140" stroke-width="2.5" stroke-linejoin="round"/>
+        <line x1="13" y1="14" x2="13" y2="20" stroke="#00B140" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- "apo" completing the word -->
+        <text x="24" y="20" font-family="Nunito,Arial,sans-serif"
+              font-size="13" font-weight="700" fill="#00B140">apo</text>
+      </svg>`;
+    }
+  },
+
+  // ── Dreame (Level 5) ────────────────────────────────────────────────────────
+  logoDreame: {
+    label:'Dreame Logo', bx:0, by:-90, w:90, h:26, z:9,
+    svg() {
+      return `<svg width="90" height="26" viewBox="0 0 90 26" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="88" height="24" rx="5" fill="#003FA5" stroke="#002A70" stroke-width="1.5"/>
+        <!-- 4-point star mark -->
+        <polygon points="13,5 14.6,11 20,13 14.6,15 13,21 11.4,15 6,13 11.4,11"
+                 fill="#FFD700" stroke="#C8A800" stroke-width="0.5"/>
+        <!-- "Dreame" text -->
+        <text x="25" y="19" font-family="Nunito,Arial,sans-serif"
+              font-size="13" font-weight="700" fill="white">Dreame</text>
+      </svg>`;
+    }
   }
 };
 
@@ -307,9 +397,9 @@ const PART_DEFS = {
 // Level definitions
 // ══════════════════════════════════════════════════════════════════════════════
 const LEVELS = [
-  { id:1, name:'Easy',           parts:['body','bumper','wheelL','wheelR','powerBtn'] },
-  { id:2, name:'Getting Harder', parts:['body','bumper','wheelL','wheelR','powerBtn','sideBrush','dirtBin'] },
-  { id:3, name:'Nice Work!',     parts:['body','bumper','wheelL','wheelR','powerBtn','sideBrush','dirtBin','chargingContacts','topSensor'] },
-  { id:4, name:'Almost Expert!', parts:['body','bumper','wheelL','wheelR','powerBtn','sideBrush','dirtBin','chargingContacts','topSensor','brushRoll','irSensors'] },
-  { id:5, name:'Vacuum Expert!', parts:['body','bumper','wheelL','wheelR','powerBtn','sideBrush','dirtBin','chargingContacts','topSensor','brushRoll','irSensors','cliffSensors','wifiLight','filterVent'] }
+  { id:1, name:'Easy',           parts:['body','bumper','wheelL','wheelR','powerBtn','logoIrobot'] },
+  { id:2, name:'Getting Harder', parts:['body','bumper','wheelL','wheelR','powerBtn','sideBrush','dirtBin','logoEufy'] },
+  { id:3, name:'Nice Work!',     parts:['body','bumper','wheelL','wheelR','powerBtn','sideBrush','dirtBin','chargingContacts','topSensor','logoRoborock'] },
+  { id:4, name:'Almost Expert!', parts:['body','bumper','wheelL','wheelR','powerBtn','sideBrush','dirtBin','chargingContacts','topSensor','brushRoll','irSensors','logoTapo'] },
+  { id:5, name:'Vacuum Expert!', parts:['body','bumper','wheelL','wheelR','powerBtn','sideBrush','dirtBin','chargingContacts','topSensor','brushRoll','irSensors','cliffSensors','wifiLight','filterVent','logoDreame'] }
 ];
