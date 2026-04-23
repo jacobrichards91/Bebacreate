@@ -13,8 +13,8 @@ const state = {
   playRafId:   null,       // rAF id for play-mode animation loop
 };
 
-// Play-mode robot position (module-level, not part of reset-able state)
-let _playX = 0, _playY = 0, _playTX = 0, _playTY = 0;
+// Play-mode: offset of snap-layer from its home position, in puzzle-area px
+let _playDX = 0, _playDY = 0, _playTDX = 0, _playTDY = 0;
 
 const SNAP_DIST   = 55;
 const ENCOURAGE   = ['Oops! Try again! 😅', 'Almost! 💪', 'Keep trying! 🌟', 'So close! 🎯', "You've got this! 🤖"];
@@ -515,35 +515,38 @@ function spinVacuum() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// Canvas driving animation
+// Driving animation — moves the real assembled robot around the puzzle area
 // ══════════════════════════════════════════════════════════════════════════════
 function startDrivingAnimation() {
+  // Cancel the spin animation so its committed transform doesn't fight ours
+  if (state.spinAnim) { state.spinAnim.cancel(); state.spinAnim = null; }
+
   resizeCanvas();
   ctx2d.clearRect(0, 0, canvas.width, canvas.height);
 
-  const W = canvas.width, H = canvas.height;
-  const BG = 'rgba(245,242,237,0.12)'; // background fade colour (matches page bg)
+  const r  = puzzleArea.getBoundingClientRect();
+  const mx = r.width  * 0.27;  // max X offset keeping 180px robot in view
+  const my = r.height * 0.20;  // max Y offset
 
+  // Waypoints as offsets from puzzle-area center (puzzle-area px)
   const waypoints = [
-    { x: W * 0.50, y: H * 0.50 },
-    { x: W * 0.82, y: H * 0.18 },
-    { x: W * 0.18, y: H * 0.14 },
-    { x: W * 0.12, y: H * 0.82 },
-    { x: W * 0.82, y: H * 0.78 },
-    { x: W * 0.55, y: H * 0.30 },
-    { x: W * 0.50, y: H * 0.50 },
+    { dx:  0,   dy:  0  },
+    { dx:  mx,  dy: -my },
+    { dx: -mx,  dy: -my },
+    { dx: -mx,  dy:  my },
+    { dx:  mx,  dy:  my },
+    { dx:  0,   dy:  0  },
   ];
 
-  const TOTAL_MS = 4400;
+  const TOTAL_MS = 4000;
   const startT   = performance.now();
-  startHum();
 
   function catmullRom(t, p0, p1, p2, p3) {
     const t2 = t * t, t3 = t2 * t;
     return 0.5 * ((2*p1) + (-p0+p2)*t + (2*p0-5*p1+4*p2-p3)*t2 + (-p0+3*p1-3*p2+p3)*t3);
   }
 
-  function getPos(prog) {
+  function getOffset(prog) {
     const segs   = waypoints.length - 1;
     const scaled = prog * segs;
     const seg    = Math.min(Math.floor(scaled), segs - 1);
@@ -553,33 +556,32 @@ function startDrivingAnimation() {
     const p2 = waypoints[Math.min(seg+1, waypoints.length-1)];
     const p3 = waypoints[Math.min(seg+2, waypoints.length-1)];
     return {
-      x: catmullRom(t, p0.x, p1.x, p2.x, p3.x),
-      y: catmullRom(t, p0.y, p1.y, p2.y, p3.y),
+      dx: catmullRom(t, p0.dx, p1.dx, p2.dx, p3.dx),
+      dy: catmullRom(t, p0.dy, p1.dy, p2.dy, p3.dy),
     };
   }
 
   function frame(now) {
     const prog = Math.min((now - startT) / TOTAL_MS, 1);
-    const pos  = getPos(prog);
+    const off  = getOffset(prog);
 
-    // fade existing trail with a translucent fill (NOT clearRect — that ignores globalAlpha)
-    ctx2d.fillStyle = BG;
-    ctx2d.fillRect(0, 0, W, H);
+    // Move the real assembled robot
+    snapLayer.style.transform = `translate(${off.dx}px,${off.dy}px)`;
 
-    // trail glow dot
+    // Draw a fading trail dot on canvas at the robot's canvas-space position
+    const cx = canvas.width  * (0.5 + off.dx / r.width);
+    const cy = canvas.height * (0.5 + off.dy / r.height);
+    ctx2d.fillStyle = 'rgba(245,242,237,0.10)';
+    ctx2d.fillRect(0, 0, canvas.width, canvas.height);
     ctx2d.beginPath();
-    ctx2d.arc(pos.x, pos.y, 14, 0, Math.PI * 2);
-    ctx2d.fillStyle = 'rgba(173,232,244,0.65)';
+    ctx2d.arc(cx, cy, 18, 0, Math.PI * 2);
+    ctx2d.fillStyle = 'rgba(173,232,244,0.55)';
     ctx2d.fill();
-
-    // mini vacuum — use level colour so it matches the built robot
-    drawMiniRobot(pos.x, pos.y);
 
     if (prog < 1) {
       requestAnimationFrame(frame);
     } else {
-      stopHum();
-      startPlayMode(pos.x, pos.y);
+      startPlayMode();
     }
   }
 
@@ -587,37 +589,27 @@ function startDrivingAnimation() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// Play mode — tap anywhere on the canvas to drive the robot there
+// Play mode — tap anywhere to drive the real robot; tap the dock to go home
 // ══════════════════════════════════════════════════════════════════════════════
-function drawMiniRobot(x, y) {
-  const c = LEVEL_COLORS[state.levelIdx];
-  ctx2d.beginPath();
-  ctx2d.arc(x, y, 20, 0, Math.PI * 2);
-  ctx2d.fillStyle = c.body;
-  ctx2d.fill();
-  ctx2d.beginPath();
-  ctx2d.arc(x, y, 15, 0, Math.PI * 2);
-  ctx2d.fillStyle = c.light;
-  ctx2d.fill();
-  [[- 6, -5], [6, -5]].forEach(([dx, dy]) => {
-    ctx2d.beginPath();
-    ctx2d.arc(x + dx, y + dy, 3, 0, Math.PI * 2);
-    ctx2d.fillStyle = '#00FF88';
-    ctx2d.fill();
-  });
-}
-
-function startPlayMode(startX, startY) {
-  const W = canvas.width, H = canvas.height;
-  _playX = startX ?? W / 2;
-  _playY = startY ?? H / 2;
-  _playTX = _playX;
-  _playTY = _playY;
+function startPlayMode() {
+  _playDX = 0; _playDY = 0;
+  _playTDX = 0; _playTDY = 0;
+  snapLayer.style.transform = '';
+  ctx2d.clearRect(0, 0, canvas.width, canvas.height);
   state.playMode = true;
   canvas.style.pointerEvents = 'auto';
   canvas.style.cursor = 'crosshair';
-  ctx2d.clearRect(0, 0, W, H);
-  drawMiniRobot(_playX, _playY);
+
+  // Add dock button
+  const dock = document.createElement('div');
+  dock.id = 'play-dock';
+  dock.innerHTML = '<span class="dock-icon">⚡</span><span class="dock-label">DOCK</span>';
+  puzzleArea.appendChild(dock);
+  dock.addEventListener('pointerdown', e => {
+    e.stopPropagation();
+    _playTDX = 0; _playTDY = 0;
+    if (!state.playRafId) state.playRafId = requestAnimationFrame(tickPlayMode);
+  });
 }
 
 function stopPlayMode() {
@@ -627,48 +619,54 @@ function stopPlayMode() {
   canvas.style.pointerEvents = 'none';
   canvas.style.cursor = '';
   ctx2d.clearRect(0, 0, canvas.width, canvas.height);
+  snapLayer.style.transform = '';
+  document.getElementById('play-dock')?.remove();
 }
 
 function tickPlayMode() {
   if (!state.playMode) return;
-  const dx = _playTX - _playX;
-  const dy = _playTY - _playY;
+  const dx = _playTDX - _playDX;
+  const dy = _playTDY - _playDY;
   const d  = Math.hypot(dx, dy);
 
   if (d < 1.5) {
+    _playDX = _playTDX; _playDY = _playTDY;
+    snapLayer.style.transform = `translate(${_playDX}px,${_playDY}px)`;
     state.playRafId = null;
     return;
   }
 
-  const speed = Math.min(d * 0.12, 10);
-  _playX += (dx / d) * speed;
-  _playY += (dy / d) * speed;
+  const speed = Math.min(d * 0.10, 12);
+  _playDX += (dx / d) * speed;
+  _playDY += (dy / d) * speed;
+  snapLayer.style.transform = `translate(${_playDX}px,${_playDY}px)`;
 
-  // fade old trail
-  ctx2d.fillStyle = 'rgba(245,242,237,0.18)';
+  // fading trail dot on canvas at robot's canvas-space position
+  const r  = puzzleArea.getBoundingClientRect();
+  const cx = canvas.width  * (0.5 + _playDX / r.width);
+  const cy = canvas.height * (0.5 + _playDY / r.height);
+  ctx2d.fillStyle = 'rgba(245,242,237,0.14)';
   ctx2d.fillRect(0, 0, canvas.width, canvas.height);
-
-  // trail glow dot
   ctx2d.beginPath();
-  ctx2d.arc(_playX, _playY, 12, 0, Math.PI * 2);
-  ctx2d.fillStyle = 'rgba(173,232,244,0.45)';
+  ctx2d.arc(cx, cy, 14, 0, Math.PI * 2);
+  ctx2d.fillStyle = 'rgba(173,232,244,0.5)';
   ctx2d.fill();
 
-  drawMiniRobot(_playX, _playY);
   state.playRafId = requestAnimationFrame(tickPlayMode);
 }
 
-// Single shared canvas listener — only active when playMode is true
+// Canvas tap listener — converts to puzzle-area center offset
 canvas.addEventListener('pointerdown', e => {
   if (!state.playMode) return;
-  const r     = canvas.getBoundingClientRect();
-  const scaleX = canvas.width  / r.width;
-  const scaleY = canvas.height / r.height;
-  _playTX = (e.clientX - r.left) * scaleX;
-  _playTY = (e.clientY - r.top)  * scaleY;
-  if (!state.playRafId) {
-    state.playRafId = requestAnimationFrame(tickPlayMode);
-  }
+  const r   = puzzleArea.getBoundingClientRect();
+  const tdx = (e.clientX - r.left) - r.width  / 2;
+  const tdy = (e.clientY - r.top)  - r.height / 2;
+  // clamp so robot body stays mostly in view
+  const maxDX = r.width  / 2 - 30;
+  const maxDY = r.height / 2 - 30;
+  _playTDX = Math.max(-maxDX, Math.min(maxDX, tdx));
+  _playTDY = Math.max(-maxDY, Math.min(maxDY, tdy));
+  if (!state.playRafId) state.playRafId = requestAnimationFrame(tickPlayMode);
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
