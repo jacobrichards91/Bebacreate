@@ -12,17 +12,15 @@ const PART_DEFS = {
     svg() {
       return `<svg width="180" height="180" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <radialGradient id="bG" cx="40%" cy="35%" r="60%">
-            <stop offset="0%"   stop-color="#606060"/>
-            <stop offset="55%"  stop-color="#3A3A3A"/>
-            <stop offset="100%" stop-color="#1E1E1E"/>
+          <radialGradient id="bG" cx="40%" cy="35%" r="58%">
+            <stop offset="0%"   stop-color="#5A5A5A"/>  <!-- lighter grey in centre (spec) -->
+            <stop offset="45%"  stop-color="#3A3A3A"/>  <!-- dark charcoal (spec) -->
+            <stop offset="100%" stop-color="#222222"/>  <!-- darker edge -->
           </radialGradient>
         </defs>
         <circle cx="90" cy="90" r="87" fill="url(#bG)" stroke="#111" stroke-width="2"/>
-        <!-- inner ring detail -->
-        <circle cx="90" cy="90" r="76" fill="none" stroke="#505050" stroke-width="1.2" opacity="0.5"/>
-        <!-- highlight arc top-left -->
-        <path d="M 40,55 A 60,60 0 0 1 90,30" fill="none" stroke="#707070" stroke-width="3" stroke-linecap="round" opacity="0.35"/>
+        <circle cx="90" cy="90" r="76" fill="none" stroke="#4A4A4A" stroke-width="1.5" opacity="0.45"/>
+        <path d="M 42,54 A 56,56 0 0 1 90,32" fill="none" stroke="#666" stroke-width="2.5" stroke-linecap="round" opacity="0.30"/>
       </svg>`;
     }
   },
@@ -104,11 +102,12 @@ const PART_DEFS = {
   sideBrush: {
     label: 'Side Brush', snapX: 0.295, snapY: 0.660, w: 66, h: 66, z: 4, round: true,
     svg() {
+      // 5-arm asterisk as per spec ("5-pointed star/asterisk shape")
       const arms = [];
-      for (let i = 0; i < 6; i++) {
-        const a = (i * 60 - 90) * Math.PI / 180;
-        const mx = 33 + Math.cos(a) * 14;
-        const my = 33 + Math.sin(a) * 14;
+      for (let i = 0; i < 5; i++) {
+        const a = (i * 72 - 90) * Math.PI / 180;  // 360/5 = 72° apart, start at top
+        const mx = 33 + Math.cos(a) * 13;
+        const my = 33 + Math.sin(a) * 13;
         const x2 = 33 + Math.cos(a) * 30;
         const y2 = 33 + Math.sin(a) * 30;
         arms.push(`<line x1="${mx.toFixed(1)}" y1="${my.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#E85D04" stroke-width="8" stroke-linecap="round"/>`);

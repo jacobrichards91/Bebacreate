@@ -200,6 +200,7 @@ function initLevel() {
   updatePartsCounter();
 
   // create tray parts (shuffled order each level)
+  const trayWrap = document.getElementById('tray-wrap');
   const shuffled = shuffle(level.parts);
   shuffled.forEach((partId, i) => {
     const def  = PART_DEFS[partId];
@@ -212,6 +213,11 @@ function initLevel() {
     wrap.innerHTML = def.svg() + `<div class="part-label">${def.label}</div>`;
     partsTray.appendChild(wrap);
     attachDrag(wrap, partId);
+  });
+
+  // show fade-edge hint if tray content overflows horizontally
+  requestAnimationFrame(() => {
+    trayWrap.classList.toggle('overflows', partsTray.scrollWidth > partsTray.clientWidth + 4);
   });
 }
 

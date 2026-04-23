@@ -207,6 +207,29 @@ body {
   text-transform: uppercase;
   flex-shrink: 0;
   padding: 2px 0 3px;
+  position: relative;
+}
+
+/* Fade-out edges hint that tray scrolls */
+#tray-wrap {
+  position: relative;
+}
+#tray-wrap::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 36px;
+  background: linear-gradient(to right, transparent, rgba(237,226,216,0.90));
+  pointer-events: none;
+  z-index: 20;
+  border-radius: 0 0 0 0;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+#tray-wrap.overflows::after {
+  opacity: 1;
 }
 
 #parts-tray {
@@ -214,14 +237,18 @@ body {
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  align-content: center;
-  padding: 2px 8px 4px;
-  overflow: hidden;
+  justify-content: center;       /* centres when parts fit; scrolls when they don't */
+  gap: 10px;
+  flex-wrap: nowrap;             /* single row — spec requirement */
+  padding: 4px 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
   min-height: 0;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;         /* hide scrollbar — kids won't use it */
 }
+#parts-tray::-webkit-scrollbar { display: none; }
 
 /* ══════════════════════════════════════════════════════
    Parts
@@ -242,10 +269,10 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Scale down SVGs inside the tray so 14-part level fits without overflow */
+/* Scale down SVGs inside the tray so all parts fit without the row becoming enormous */
 #parts-tray .part-wrap svg {
-  max-width: clamp(44px, 11vw, 80px);
-  max-height: clamp(44px, 9vw, 72px);
+  max-width: clamp(42px, 10vw, 76px);
+  max-height: clamp(42px, 8.5vw, 68px);
   width: auto;
   height: auto;
 }
@@ -442,14 +469,12 @@ body {
    Keyframes
 ══════════════════════════════════════════════════════ */
 @keyframes wiggleFloat {
-  0%          { transform: translateY(0)    rotate(0deg);  }
-  15%         { transform: translateY(-4px) rotate(-5deg); }
-  30%         { transform: translateY(-6px) rotate(0deg);  }
-  45%         { transform: translateY(-4px) rotate(5deg);  }
-  60%         { transform: translateY(-2px) rotate(0deg);  }
-  75%         { transform: translateY(-5px) rotate(-3deg); }
-  90%         { transform: translateY(-1px) rotate(3deg);  }
-  100%        { transform: translateY(0)    rotate(0deg);  }
+  0%          { transform: translateY(0px)  rotate(0deg);  }
+  20%         { transform: translateY(-4px) rotate(-4deg); }
+  40%         { transform: translateY(-4px) rotate(0deg);  }
+  60%         { transform: translateY(-3px) rotate(4deg);  }
+  80%         { transform: translateY(-1px) rotate(0deg);  }
+  100%        { transform: translateY(0px)  rotate(0deg);  }
 }
 
 @keyframes glowPulse {
