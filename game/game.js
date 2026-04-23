@@ -15,8 +15,7 @@ const state = {
 
 // Fleet of completed robots (persists across levels)
 // Each entry: { el, dockCX, dockCY, scale, dx, dy, vx, vy }
-const robotFleet = [];
-let _playState = 'docked';  // 'docked' | 'cleaning' | 'returning'
+const robotFleet = [];  // each robot carries its own .state ('docked'|'cleaning'|'returning')
 
 const SNAP_DIST   = 55;
 const ENCOURAGE   = ['Oops! Try again! 😅', 'Almost! 💪', 'Keep trying! 🌟', 'So close! 🎯', "You've got this! 🤖"];
@@ -40,8 +39,10 @@ function calcDockScale(N) {
 
 function calcPlayScale(dockScale, N) {
   const r = puzzleArea.getBoundingClientRect();
-  const widthCap = (r.width - 8) / N / ROBOT_VW;
-  return Math.min(dockScale * 3, widthCap, MAX_PLAY_SCALE);
+  // Allow docks to overlap a bit so more robots can stay big enough to tap
+  const widthCap = (r.width * 1.15) / N / ROBOT_VW;
+  // Floor keeps the power button comfortably tappable even at high N
+  return Math.max(Math.min(dockScale * 3, widthCap, MAX_PLAY_SCALE), 0.42);
 }
 
 function applyFleetTransform(robot) {
@@ -83,7 +84,9 @@ function updateFleetLayout(animateNew) {
         applyFleetTransform(robot);
         setTimeout(() => {
           robot.el.style.transition = '';
-          robot.el.classList.add('play-docked');
+          if (robot.state === 'docked' && state.playMode) {
+            robot.el.classList.add('play-docked');
+          }
         }, 880);
       });
     } else if (scaleChanged) {
@@ -92,6 +95,13 @@ function updateFleetLayout(animateNew) {
       setTimeout(() => { robot.el.style.transition = ''; }, 720);
     } else {
       applyFleetTransform(robot);
+    }
+
+    // Keep play-docked class in sync with state (existing fleet members
+    // entering play mode should start glowing immediately)
+    if (!isNew) {
+      const shouldGlow = state.playMode && robot.state === 'docked';
+      robot.el.classList.toggle('play-docked', shouldGlow);
     }
   });
   _buildDock();
@@ -108,6 +118,7 @@ function captureRobot() {
     el: clone, dockCX: 0, dockCY: DOCK_H / 2,
     dockScale: 0.28, playScale: 0.85, scale: 1,
     dx: 0, dy: 0, vx: 0, vy: 0,
+    state: 'docked',   // per-robot: 'docked' | 'cleaning' | 'returning'
   });
 }
 
@@ -699,12 +710,13 @@ function startDrivingAnimation() {
 function startPlayMode() {
   captureRobot();
   snapLayer.style.display = 'none';   // hide build layer; fleet clone takes over
-  _playState = 'docked';
   state.playMode = true;
   canvas.style.pointerEvents = 'auto';
   canvas.style.cursor = 'default';
   ctx2d.clearRect(0, 0, canvas.width, canvas.height);
-  updateFleetLayout(true);            // shrink new robot into dock slot
+  // All robots start docked in play mode
+  robotFleet.forEach(r => { r.state = 'docked'; r.dx = 0; r.dy = 0; r.vx = 0; r.vy = 0; });
+  updateFleetLayout(true);            // move new robot into dock slot, glow existing
 }
 
 function _buildDock() {
@@ -720,10 +732,10 @@ function _buildDock() {
     : 90;
 
   const stations = N > 0
-    ? robotFleet.map(robot => {
+    ? robotFleet.map((robot, i) => {
         const cx = robot.dockCX;
         const x  = Math.round(cx - dockW / 2);
-        return `<g class="dock-station" pointer-events="all" transform="translate(${x},0)">
+        return `<g class="dock-station" data-robot-idx="${i}" pointer-events="all" transform="translate(${x},0)">
           <rect x="0" y="0" width="${dockW}" height="44" rx="7" fill="url(#dkgrd)" stroke="#555" stroke-width="1"/>
           <rect x="4" y="3" width="${dockW - 8}" height="3" rx="1.5" fill="rgba(255,255,255,0.12)"/>
           <rect x="7" y="9" width="${dockW - 14}" height="4" rx="2" fill="#00CC66" opacity="0.85"/>
@@ -733,7 +745,7 @@ function _buildDock() {
           <rect x="${dockW / 2 - 4}" y="44" width="5"  height="8"  rx="2" fill="#F0D070" opacity="0.6"/>
         </g>`;
       }).join('')
-    : `<g class="dock-station" pointer-events="all" transform="translate(${(W - dockW) / 2},0)">
+    : `<g class="dock-station" transform="translate(${(W - dockW) / 2},0)">
         <rect x="0" y="0" width="${dockW}" height="44" rx="7" fill="url(#dkgrd)" stroke="#555" stroke-width="1"/>
         <rect x="${dockW / 2 - 7}" y="42" width="14" height="20" rx="4" fill="#C8A84B" stroke="#907010" stroke-width="1.2"/>
         <rect x="${dockW / 2 - 4}" y="44" width="5"  height="8"  rx="2" fill="#F0D070" opacity="0.6"/>
@@ -752,16 +764,17 @@ function _buildDock() {
   </svg>`;
   puzzleArea.appendChild(dock);
 
-  // Only individual station shapes trigger return-to-dock; empty space
-  // in the SVG passes through to canvas so launch-taps still work.
-  dock.querySelectorAll('.dock-station').forEach(station => {
+  // Each station only returns its associated robot. Empty SVG space
+  // lets taps fall through to the canvas so launch-taps still work.
+  dock.querySelectorAll('.dock-station[data-robot-idx]').forEach(station => {
     station.addEventListener('pointerdown', e => {
       e.stopPropagation();
-      if (state.playMode && _playState === 'cleaning') {
-        robotFleet.forEach(rb => rb.el.classList.remove('play-docked'));
-        _playState = 'returning';
-        if (!state.playRafId) state.playRafId = requestAnimationFrame(tickPlayMode);
-      }
+      if (!state.playMode) return;
+      const idx = parseInt(station.dataset.robotIdx, 10);
+      const robot = robotFleet[idx];
+      if (!robot || robot.state !== 'cleaning') return;
+      robot.state = 'returning';
+      if (!state.playRafId) state.playRafId = requestAnimationFrame(tickPlayMode);
     });
   });
 }
@@ -769,14 +782,14 @@ function _buildDock() {
 function stopPlayMode() {
   if (!state.playMode) return;
   state.playMode = false;
-  _playState = 'docked';
   if (state.playRafId) { cancelAnimationFrame(state.playRafId); state.playRafId = null; }
   canvas.style.pointerEvents = 'none';
   canvas.style.cursor = '';
   ctx2d.clearRect(0, 0, canvas.width, canvas.height);
-  // Reset fleet positions and stop glow
+  // Reset all robot state and positions
   robotFleet.forEach(r => {
-    r.dx = 0; r.dy = 0;
+    r.dx = 0; r.dy = 0; r.vx = 0; r.vy = 0;
+    r.state = 'docked';
     r.el.classList.remove('play-docked');
     applyFleetTransform(r);
   });
@@ -788,6 +801,7 @@ function _drawPlayTrails(r) {
   ctx2d.fillStyle = 'rgba(245,242,237,0.05)';
   ctx2d.fillRect(0, 0, canvas.width, canvas.height);
   robotFleet.forEach(robot => {
+    if (robot.state === 'docked') return;   // skip still robots
     const cx = canvas.width  * ((robot.dockCX + robot.dx) / r.width);
     const cy = canvas.height * ((robot.dockCY + robot.dy) / r.height);
     ctx2d.beginPath();
@@ -800,16 +814,16 @@ function _drawPlayTrails(r) {
 function tickPlayMode() {
   if (!state.playMode) return;
   const r = puzzleArea.getBoundingClientRect();
+  let anyActive = false;
 
-  // ── Bouncing ──────────────────────────────────────────────────────────────
-  if (_playState === 'cleaning') {
-    robotFleet.forEach(robot => {
+  robotFleet.forEach(robot => {
+    if (robot.state === 'cleaning') {
+      anyActive = true;
       robot.dx += robot.vx;
       robot.dy += robot.vy;
       const halfW = ROBOT_VW / 2 * robot.scale;
       const halfH = ROBOT_VH / 2 * robot.scale;
-      // Bounds are relative to the robot's home (dockCX, dockCY), keeping
-      // the robot body inside the puzzle area
+      // Bounds are relative to this robot's home slot
       const minDX = halfW - robot.dockCX;
       const maxDX = r.width  - halfW - robot.dockCX;
       const minDY = halfH - robot.dockCY;
@@ -819,64 +833,52 @@ function tickPlayMode() {
       if (robot.dy > maxDY) { robot.dy = maxDY; robot.vy = -Math.abs(robot.vy); }
       if (robot.dy < minDY) { robot.dy = minDY; robot.vy =  Math.abs(robot.vy); }
       applyFleetTransform(robot);
-    });
-    _drawPlayTrails(r);
-    state.playRafId = requestAnimationFrame(tickPlayMode);
-    return;
-  }
-
-  // ── Returning to dock ─────────────────────────────────────────────────────
-  if (_playState === 'returning') {
-    let allHome = true;
-    robotFleet.forEach(robot => {
+    } else if (robot.state === 'returning') {
       const d = Math.hypot(robot.dx, robot.dy);
-      if (d < 2) { robot.dx = 0; robot.dy = 0; }
-      else {
+      if (d < 2) {
+        robot.dx = 0; robot.dy = 0;
+        robot.state = 'docked';
+        robot.el.classList.add('play-docked');
+        applyFleetTransform(robot);
+      } else {
+        anyActive = true;
         const speed = Math.min(d * 0.08, 10);
         robot.dx -= (robot.dx / d) * speed;
         robot.dy -= (robot.dy / d) * speed;
-        allHome = false;
+        applyFleetTransform(robot);
       }
-      applyFleetTransform(robot);
-    });
-    _drawPlayTrails(r);
-
-    if (allHome) {
-      ctx2d.clearRect(0, 0, canvas.width, canvas.height);
-      _playState = 'docked';
-      state.playRafId = null;
-      robotFleet.forEach(r => r.el.classList.add('play-docked'));
-    } else {
-      state.playRafId = requestAnimationFrame(tickPlayMode);
     }
-    return;
-  }
+  });
 
-  state.playRafId = null;
+  _drawPlayTrails(r);
+
+  if (anyActive) {
+    state.playRafId = requestAnimationFrame(tickPlayMode);
+  } else {
+    ctx2d.clearRect(0, 0, canvas.width, canvas.height);
+    state.playRafId = null;
+  }
 }
 
-// Tap any fleet robot's power button to launch all robots
+// Tap a docked robot's power button to launch that one robot only
 canvas.addEventListener('pointerdown', e => {
-  if (!state.playMode || _playState !== 'docked') return;
+  if (!state.playMode) return;
   const r = puzzleArea.getBoundingClientRect();
   const tapX = e.clientX - r.left;
   const tapY = e.clientY - r.top;
   for (const robot of robotFleet) {
+    if (robot.state !== 'docked') continue;  // only docked robots can be launched
     const rCX = robot.dockCX + robot.dx;
     const rCY = robot.dockCY + robot.dy;
-    // Generous radius so kids can tap anywhere on the robot body
     if (Math.hypot(tapX - rCX, tapY - rCY) < Math.max(60 * robot.scale, 36)) {
-      robotFleet.forEach(rb => {
-        rb.el.classList.remove('play-docked');
-        const sectors = [35, 145, 215, 325];
-        const angle = (sectors[Math.floor(Math.random() * 4)] + (Math.random() - 0.5) * 30) * Math.PI / 180;
-        rb.vx = Math.cos(angle) * 2.2;
-        rb.vy = Math.sin(angle) * 2.2;
-      });
-      _playState = 'cleaning';
-      ctx2d.clearRect(0, 0, canvas.width, canvas.height);
+      robot.el.classList.remove('play-docked');
+      const sectors = [35, 145, 215, 325];
+      const angle = (sectors[Math.floor(Math.random() * 4)] + (Math.random() - 0.5) * 30) * Math.PI / 180;
+      robot.vx = Math.cos(angle) * 2.2;
+      robot.vy = Math.sin(angle) * 2.2;
+      robot.state = 'cleaning';
       if (!state.playRafId) state.playRafId = requestAnimationFrame(tickPlayMode);
-      break;
+      break;  // launch at most one per tap
     }
   }
 });
