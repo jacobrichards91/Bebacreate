@@ -52,7 +52,29 @@ function getPuzzleRect() { return puzzleArea.getBoundingClientRect(); }
 function snapPxCenter(partId) {
   const def = PART_DEFS[partId];
   const r   = getPuzzleRect();
-  return { x: r.left + def.snapX * r.width, y: r.top + def.snapY * r.height };
+  return {
+    x: r.left + r.width  / 2 + (def.bx || 0),
+    y: r.top  + r.height / 2 + (def.by || 0),
+  };
+}
+
+// For wheels: either wheel can snap to either slot (nearest unoccupied one).
+// Returns the slot id to snap into, or null if no slot within SNAP_DIST.
+function getSnapSlot(partId, elCx, elCy) {
+  const level = LEVELS[state.levelIdx];
+  if (partId === 'wheelL' || partId === 'wheelR') {
+    const available = ['wheelL', 'wheelR']
+      .filter(id => level.parts.includes(id) && !state.snapped.has(id));
+    let bestSlot = null, bestDist = SNAP_DIST;
+    for (const slotId of available) {
+      const sp = snapPxCenter(slotId);
+      const d2 = dist(elCx, elCy, sp.x, sp.y);
+      if (d2 < bestDist) { bestDist = d2; bestSlot = slotId; }
+    }
+    return bestSlot;
+  }
+  const sp = snapPxCenter(partId);
+  return dist(elCx, elCy, sp.x, sp.y) < SNAP_DIST ? partId : null;
 }
 
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -107,8 +129,8 @@ function renderSnapHints() {
     hint.id        = `hint-${partId}`;
     hint.style.width  = def.w + 'px';
     hint.style.height = def.h + 'px';
-    hint.style.left   = (def.snapX * r.width)  + 'px';
-    hint.style.top    = (def.snapY * r.height) + 'px';
+    hint.style.left   = (r.width  / 2 + (def.bx || 0)) + 'px';
+    hint.style.top    = (r.height / 2 + (def.by || 0)) + 'px';
     snapHintsEl.appendChild(hint);
   });
 }
@@ -127,8 +149,8 @@ function repositionSnapHints() {
     const def  = PART_DEFS[partId];
     const hint = snapHintsEl.querySelector(`#hint-${partId}`);
     if (!hint) return;
-    hint.style.left = (def.snapX * r.width)  + 'px';
-    hint.style.top  = (def.snapY * r.height) + 'px';
+    hint.style.left = (r.width  / 2 + (def.bx || 0)) + 'px';
+    hint.style.top  = (r.height / 2 + (def.by || 0)) + 'px';
   });
 }
 
@@ -152,8 +174,8 @@ window.addEventListener('resize', () => {
     if (!el) return;
     const def = PART_DEFS[partId];
     const r   = getPuzzleRect();
-    el.style.left = (def.snapX * r.width  - def.w / 2) + 'px';
-    el.style.top  = (def.snapY * r.height - def.h / 2) + 'px';
+    el.style.left = (r.width  / 2 + (def.bx || 0) - def.w / 2) + 'px';
+    el.style.top  = (r.height / 2 + (def.by || 0) - def.h / 2) + 'px';
   });
 });
 
@@ -260,14 +282,13 @@ function attachDrag(wrap, partId) {
     const d    = state.drag;
     state.drag = null;
 
-    const elRect = d.el.getBoundingClientRect();
-    const elCx   = elRect.left + elRect.width  / 2;
-    const elCy   = elRect.top  + elRect.height / 2;
-    const snap   = snapPxCenter(partId);
-    const d2     = dist(elCx, elCy, snap.x, snap.y);
+    const elRect   = d.el.getBoundingClientRect();
+    const elCx     = elRect.left + elRect.width  / 2;
+    const elCy     = elRect.top  + elRect.height / 2;
+    const snapSlot = getSnapSlot(partId, elCx, elCy);
 
-    if (d2 < SNAP_DIST) {
-      doSnap(partId, d.el);
+    if (snapSlot) {
+      doSnap(snapSlot, d.el);
     } else {
       returnToTray(partId, d.el);
     }
@@ -284,12 +305,16 @@ function attachDrag(wrap, partId) {
 
 // ══════════════════════════════════════════════════════════════════════════════
 // Snap a part into place
+// snapSlotId is the target slot (may differ from dragged partId for wheels)
 // ══════════════════════════════════════════════════════════════════════════════
-function doSnap(partId, el) {
-  const def  = PART_DEFS[partId];
-  const r    = getPuzzleRect();
-  const left = def.snapX * r.width  - def.w / 2;
-  const top  = def.snapY * r.height - def.h / 2;
+function doSnap(snapSlotId, el) {
+  const def = PART_DEFS[snapSlotId];
+  const r   = getPuzzleRect();
+  const left = r.width  / 2 + (def.bx || 0) - def.w / 2;
+  const top  = r.height / 2 + (def.by || 0) - def.h / 2;
+
+  // record which slot this element is filling (needed for resize & completion)
+  el.dataset.partId = snapSlotId;
 
   el.classList.remove('dragging', 'floating', 'bounce-back');
   el.classList.add('snapped');
@@ -305,22 +330,18 @@ function doSnap(partId, el) {
   if (label) label.remove();
 
   snapLayer.appendChild(el);
+  clearSnapHint(snapSlotId);
 
-  // clear the snap hint
-  clearSnapHint(partId);
-
-  // audio + visual feedback
   playSnap();
-  state.snapped.add(partId);
+  state.snapped.add(snapSlotId);
 
   el.classList.add('glow');
   setTimeout(() => el.classList.remove('glow'), 700);
 
-  // star burst at snap center
-  spawnStarBurst(r.left + def.snapX * r.width, r.top + def.snapY * r.height);
+  const sp = snapPxCenter(snapSlotId);
+  spawnStarBurst(sp.x, sp.y);
 
-  // side brush spins continuously after snap
-  if (partId === 'sideBrush') {
+  if (snapSlotId === 'sideBrush') {
     const svg = el.querySelector('svg');
     if (svg) svg.style.animation = 'sideBrushSpin 1.4s linear infinite';
   }

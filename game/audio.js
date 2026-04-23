@@ -38,11 +38,13 @@ function playBoop() {
 }
 
 function playFanfare() {
-  // C4-E4-G4-C5 ascending chime
-  const notes = [262, 330, 392, 523];
+  // soft ascending 3-note chime (triangle = much gentler than sine at same gain)
+  const notes = [523, 659, 784]; // C5, E5, G5
   notes.forEach((freq, i) => {
-    setTimeout(() => playTone(freq, 0.18, 'sine', 0.32), i * 150);
+    setTimeout(() => playTone(freq, 0.28, 'triangle', 0.12), i * 220);
   });
+  // tiny sparkle tail
+  setTimeout(() => playTone(1046, 0.35, 'sine', 0.05), 750);
 }
 
 function startHum() {
@@ -53,11 +55,11 @@ function startHum() {
     _humGain = ctx.createGain();
     _humOsc.connect(_humGain);
     _humGain.connect(ctx.destination);
-    _humOsc.type = 'sawtooth';
-    _humOsc.frequency.value = 62;
+    _humOsc.type = 'triangle'; // much softer than sawtooth
+    _humOsc.frequency.value = 180; // motor-whir pitch, less bass rumble
     const now = ctx.currentTime;
     _humGain.gain.setValueAtTime(0, now);
-    _humGain.gain.linearRampToValueAtTime(0.06, now + 0.6);
+    _humGain.gain.linearRampToValueAtTime(0.035, now + 0.6);
     _humOsc.start(now);
   } catch (e) {}
 }
