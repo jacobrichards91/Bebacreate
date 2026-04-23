@@ -246,7 +246,7 @@ function initLevel() {
 function attachDrag(wrap, partId) {
 
   wrap.addEventListener('pointerdown', e => {
-    if (state.snapped.has(partId) || state.completing) return;
+    if (wrap.classList.contains('snapped') || state.completing) return;
     e.preventDefault();
     getAudioCtx(); // unlock AudioContext on first touch
 
