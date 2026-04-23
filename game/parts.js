@@ -311,67 +311,44 @@ const PART_DEFS = {
 
   // ── iRobot (Level 1) ────────────────────────────────────────────────────────
   logoIrobot: {
-    label:'iRobot Logo', bx:0, by:-90, w:90, h:26, z:9,
+    label:'iRobot Logo', bx:0, by:-90, w:90, h:32, z:9,
     svg() {
-      return `<svg width="90" height="26" viewBox="0 0 90 26" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="88" height="24" rx="5" fill="#CE2029" stroke="#901015" stroke-width="1.5"/>
-        <!-- "i" letterform: circle dot (robot eye) + stem -->
-        <circle cx="12" cy="8"  r="3.5" fill="white"/>
-        <rect   x="10" y="13" width="4" height="9" rx="1.5" fill="white"/>
-        <!-- "Robot" in bold italic -->
-        <text x="21" y="20" font-family="Nunito,'Arial Black',Arial,sans-serif"
-              font-size="13" font-weight="900" font-style="italic" fill="white">Robot</text>
+      return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
+        <image href="irobot.png" x="5" y="3" width="80" height="26" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     }
   },
 
   // ── eufy (Level 2) ──────────────────────────────────────────────────────────
   logoEufy: {
-    label:'eufy Logo', bx:0, by:-90, w:90, h:26, z:9,
+    label:'eufy Logo', bx:0, by:-90, w:90, h:32, z:9,
     svg() {
-      return `<svg width="90" height="26" viewBox="0 0 90 26" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="88" height="24" rx="5" fill="#111111" stroke="#18C5A8" stroke-width="1.5"/>
-        <!-- "e" mark: left-open circle + horizontal crossbar -->
-        <circle cx="13" cy="13" r="7" fill="none" stroke="#18C5A8" stroke-width="2.5"/>
-        <rect   x="13" y="6"  width="8" height="14" fill="#111111"/><!-- clip right half -->
-        <line   x1="6" y1="13" x2="20" y2="13" stroke="#18C5A8" stroke-width="2.5"/>
-        <!-- "ufy" completing the word -->
-        <text x="24" y="19" font-family="Nunito,Arial,sans-serif"
-              font-size="13" font-weight="700" fill="#18C5A8">ufy</text>
+      return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
+        <image href="eufy.png" x="5" y="3" width="80" height="26" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     }
   },
 
   // ── Roborock (Level 3) ──────────────────────────────────────────────────────
   logoRoborock: {
-    label:'Roborock Logo', bx:0, by:-90, w:90, h:26, z:9,
+    label:'Roborock Logo', bx:0, by:-90, w:90, h:32, z:9,
     svg() {
-      return `<svg width="90" height="26" viewBox="0 0 90 26" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="88" height="24" rx="5" fill="#E22726" stroke="#A01515" stroke-width="1.5"/>
-        <!-- "r" letterform: vertical stem + bump arc + angular leg -->
-        <line x1="9"  y1="7"    x2="9"  y2="19"   stroke="white" stroke-width="3"   stroke-linecap="round"/>
-        <path d="M 9,7 Q 17,7 17,11 Q 17,13.5 9,13.5"
-              fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-        <line x1="13" y1="13.5" x2="17" y2="19"   stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-        <!-- "oborock" completing the word -->
-        <text x="22" y="19" font-family="Nunito,Arial,sans-serif"
-              font-size="11.5" font-weight="700" fill="white">oborock</text>
+      return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
+        <image href="roborock.png" x="5" y="3" width="80" height="26" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     }
   },
 
-  // ── Tapo by TP-Link (Level 4) ───────────────────────────────────────────────
+  // ── 4th brand (Level 4) — logo.png ──────────────────────────────────────────
   logoTapo: {
-    label:'Tapo Logo', bx:0, by:-90, w:90, h:26, z:9,
+    label:'Logo', bx:0, by:-90, w:90, h:32, z:9,
     svg() {
-      return `<svg width="90" height="26" viewBox="0 0 90 26" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="88" height="24" rx="5" fill="#0A1628" stroke="#00B140" stroke-width="1.5"/>
-        <!-- "T" as home-roof triangle + vertical line -->
-        <polygon points="13,6 7,14 19,14" fill="none" stroke="#00B140" stroke-width="2.5" stroke-linejoin="round"/>
-        <line x1="13" y1="14" x2="13" y2="20" stroke="#00B140" stroke-width="2.5" stroke-linecap="round"/>
-        <!-- "apo" completing the word -->
-        <text x="24" y="20" font-family="Nunito,Arial,sans-serif"
-              font-size="13" font-weight="700" fill="#00B140">apo</text>
+      return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
+        <image href="logo.png" x="5" y="3" width="80" height="26" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     }
   },
