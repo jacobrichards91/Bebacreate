@@ -189,9 +189,6 @@ function initLevel() {
   nextBtn.classList.remove('visible');
   nextBtn.style.pointerEvents = 'none';
 
-  // show silhouette
-  document.getElementById('silhouette').style.opacity = '';
-
   // snap hints
   resizeCanvas();
   renderSnapHints();
@@ -210,7 +207,7 @@ function initLevel() {
     wrap.style.animationDelay    = `${(i * 0.42) % 2.5}s`;
     wrap.style.animationDuration = `${2.6 + (i * 0.3) % 1.4}s`;
     wrap.setAttribute('aria-label', def.label);
-    wrap.innerHTML = def.svg() + `<div class="part-label">${def.label}</div>`;
+    wrap.innerHTML = def.svg(LEVEL_COLORS[state.levelIdx]) + `<div class="part-label">${def.label}</div>`;
     partsTray.appendChild(wrap);
     attachDrag(wrap, partId);
   });
@@ -417,9 +414,6 @@ function spawnConfetti() {
 // Completion sequence
 // ══════════════════════════════════════════════════════════════════════════════
 async function startCompletionSequence() {
-  // hide silhouette
-  document.getElementById('silhouette').style.opacity = '0';
-
   // 1. Glow sensor eyes
   glowSensorEyes();
   await delay(800);
