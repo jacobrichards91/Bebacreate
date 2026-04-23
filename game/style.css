@@ -130,12 +130,13 @@ body {
   left: 0;
   width: 100%;
   z-index: 50;
-  cursor: pointer;
+  pointer-events: none;            /* empty space lets taps hit canvas below */
   touch-action: manipulation;
   user-select: none;
   -webkit-user-select: none;
 }
-#play-dock:active { opacity: 0.75; }
+#play-dock .dock-station { cursor: pointer; }
+#play-dock .dock-station:active { opacity: 0.75; }
 
 /* Power button glows when robot is docked and waiting */
 .play-docked [data-part-id="powerBtn"] {

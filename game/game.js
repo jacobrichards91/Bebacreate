@@ -27,22 +27,21 @@ const LOGO_PARTS  = ['logoIrobot', 'logoEufy', 'logoRoborock', 'logoTapo', 'logo
 // ══════════════════════════════════════════════════════════════════════════════
 // Robot visual bounding box (px, full scale): width=246, height=214
 const ROBOT_VW = 246, ROBOT_VH = 214;
-const DOCK_H   = 64;   // dock zone height (px) at top of puzzle area
+const DOCK_H   = 64;    // dock zone height (px) at top of puzzle area
+const DOCK_PAD = 10;    // padding around each individual dock shape
+const MAX_PLAY_SCALE = 0.90;   // cap for big play-mode robots
 
-function calcFleetScale(N) {
+function calcDockScale(N) {
   const r = puzzleArea.getBoundingClientRect();
   const scaleW = (r.width - 4) / N / ROBOT_VW;
   const scaleH = DOCK_H / ROBOT_VH;
   return Math.max(Math.min(scaleW, scaleH, 0.30), 0.10);
 }
 
-function calcDockCenters(N) {
+function calcPlayScale(dockScale, N) {
   const r = puzzleArea.getBoundingClientRect();
-  const slotW = r.width / N;
-  return Array.from({ length: N }, (_, i) => ({
-    cx: slotW / 2 + i * slotW,
-    cy: DOCK_H / 2,          // centre of dock zone
-  }));
+  const widthCap = (r.width - 8) / N / ROBOT_VW;
+  return Math.min(dockScale * 3, widthCap, MAX_PLAY_SCALE);
 }
 
 function applyFleetTransform(robot) {
@@ -56,19 +55,27 @@ function updateFleetLayout(animateNew) {
   const N = robotFleet.length;
   if (N === 0) { _buildDock(); return; }
 
-  const scale   = calcFleetScale(N);
-  const centers = calcDockCenters(N);
+  const r         = puzzleArea.getBoundingClientRect();
+  const dockScale = calcDockScale(N);
+  const playScale = calcPlayScale(dockScale, N);
+  const activeScale = state.playMode ? playScale : dockScale;
+  // In play mode, robots sit just below the dock (top of robot ~ bottom of dock prongs)
+  const activeCY = state.playMode
+    ? DOCK_H + (ROBOT_VH * playScale) / 2
+    : DOCK_H / 2;
+  const slotW = r.width / N;
 
   robotFleet.forEach((robot, i) => {
-    const scaleChanged = Math.abs(robot.scale - scale) > 0.001;
-    robot.scale  = scale;
-    robot.dockCX = centers[i].cx;
-    robot.dockCY = centers[i].cy;
+    const scaleChanged = Math.abs(robot.scale - activeScale) > 0.001;
+    robot.dockScale = dockScale;
+    robot.playScale = playScale;
+    robot.scale     = activeScale;
+    robot.dockCX    = slotW / 2 + i * slotW;
+    robot.dockCY    = activeCY;
 
     const isNew = animateNew && i === N - 1;
     if (isNew) {
-      // Start at puzzle centre (full-size), then shrink into dock slot
-      const r = puzzleArea.getBoundingClientRect();
+      // Start at puzzle centre (full-size), then settle into home slot
       robot.el.style.transition = '';
       robot.el.style.transform  = 'translate(0px,0px) scale(1)';
       requestAnimationFrame(() => {
@@ -97,7 +104,11 @@ function captureRobot() {
   clone.classList.remove('play-docked');
   clone.style.cssText = 'position:absolute;inset:0;pointer-events:none;transform-origin:50% 50%;z-index:8;';
   puzzleArea.appendChild(clone);
-  robotFleet.push({ el: clone, dockCX: 0, dockCY: DOCK_H / 2, scale: 0.3, dx: 0, dy: 0, vx: 0, vy: 0 });
+  robotFleet.push({
+    el: clone, dockCX: 0, dockCY: DOCK_H / 2,
+    dockScale: 0.28, playScale: 0.85, scale: 1,
+    dx: 0, dy: 0, vx: 0, vy: 0,
+  });
 }
 
 function clearFleet() {
@@ -702,14 +713,31 @@ function _buildDock() {
   const W = r.width;
   const N = robotFleet.length;
 
-  const prongs = N > 0
+  // Each robot gets its own charging station
+  const slotW = N > 0 ? W / N : W;
+  const dockW = N > 0
+    ? Math.max(48, Math.min(slotW - 4, ROBOT_VW * robotFleet[0].dockScale + DOCK_PAD * 2, 100))
+    : 90;
+
+  const stations = N > 0
     ? robotFleet.map(robot => {
         const cx = robot.dockCX;
-        return `<rect x="${cx - 7}" y="44" width="14" height="20" rx="4" fill="#C8A84B" stroke="#907010" stroke-width="1.2"/>
-                <rect x="${cx - 4}" y="46" width="5"  height="8"  rx="2" fill="#F0D070" opacity="0.6"/>`;
+        const x  = Math.round(cx - dockW / 2);
+        return `<g class="dock-station" pointer-events="all" transform="translate(${x},0)">
+          <rect x="0" y="0" width="${dockW}" height="44" rx="7" fill="url(#dkgrd)" stroke="#555" stroke-width="1"/>
+          <rect x="4" y="3" width="${dockW - 8}" height="3" rx="1.5" fill="rgba(255,255,255,0.12)"/>
+          <rect x="7" y="9" width="${dockW - 14}" height="4" rx="2" fill="#00CC66" opacity="0.85"/>
+          <text x="${dockW / 2}" y="32" text-anchor="middle" font-family="Nunito,sans-serif"
+                font-size="8" font-weight="900" fill="#888" letter-spacing="0.06em">HOME</text>
+          <rect x="${dockW / 2 - 7}" y="42" width="14" height="20" rx="4" fill="#C8A84B" stroke="#907010" stroke-width="1.2"/>
+          <rect x="${dockW / 2 - 4}" y="44" width="5"  height="8"  rx="2" fill="#F0D070" opacity="0.6"/>
+        </g>`;
       }).join('')
-    : `<rect x="${W/2 - 7}" y="44" width="14" height="20" rx="4" fill="#C8A84B" stroke="#907010" stroke-width="1.2"/>
-       <rect x="${W/2 - 4}" y="46" width="5"  height="8"  rx="2" fill="#F0D070" opacity="0.6"/>`;
+    : `<g class="dock-station" pointer-events="all" transform="translate(${(W - dockW) / 2},0)">
+        <rect x="0" y="0" width="${dockW}" height="44" rx="7" fill="url(#dkgrd)" stroke="#555" stroke-width="1"/>
+        <rect x="${dockW / 2 - 7}" y="42" width="14" height="20" rx="4" fill="#C8A84B" stroke="#907010" stroke-width="1.2"/>
+        <rect x="${dockW / 2 - 4}" y="44" width="5"  height="8"  rx="2" fill="#F0D070" opacity="0.6"/>
+      </g>`;
 
   const dock = document.createElement('div');
   dock.id = 'play-dock';
@@ -720,22 +748,21 @@ function _buildDock() {
         <stop offset="100%" stop-color="#1E1E1E"/>
       </linearGradient>
     </defs>
-    <rect x="0" y="0" width="${W}" height="46" fill="url(#dkgrd)" stroke="#555" stroke-width="1"/>
-    <rect x="10" y="3" width="${W-20}" height="4" rx="2" fill="rgba(255,255,255,0.10)"/>
-    <rect x="20" y="11" width="${W-40}" height="6" rx="3" fill="#00CC66" opacity="0.85"/>
-    <text x="${W/2}" y="36" text-anchor="middle" font-family="Nunito,sans-serif"
-          font-size="11" font-weight="900" fill="#888" letter-spacing="0.08em">HOME BASE</text>
-    ${prongs}
+    ${stations}
   </svg>`;
   puzzleArea.appendChild(dock);
 
-  dock.addEventListener('pointerdown', e => {
-    e.stopPropagation();
-    if (state.playMode && _playState === 'cleaning') {
-      robotFleet.forEach(r => r.el.classList.remove('play-docked'));
-      _playState = 'returning';
-      if (!state.playRafId) state.playRafId = requestAnimationFrame(tickPlayMode);
-    }
+  // Only individual station shapes trigger return-to-dock; empty space
+  // in the SVG passes through to canvas so launch-taps still work.
+  dock.querySelectorAll('.dock-station').forEach(station => {
+    station.addEventListener('pointerdown', e => {
+      e.stopPropagation();
+      if (state.playMode && _playState === 'cleaning') {
+        robotFleet.forEach(rb => rb.el.classList.remove('play-docked'));
+        _playState = 'returning';
+        if (!state.playRafId) state.playRafId = requestAnimationFrame(tickPlayMode);
+      }
+    });
   });
 }
 
@@ -781,12 +808,16 @@ function tickPlayMode() {
       robot.dy += robot.vy;
       const halfW = ROBOT_VW / 2 * robot.scale;
       const halfH = ROBOT_VH / 2 * robot.scale;
-      const maxX  =  r.width  / 2 - halfW;
-      const maxY  =  r.height / 2 - halfH;
-      if (robot.dx >  maxX) { robot.dx =  maxX; robot.vx = -Math.abs(robot.vx); }
-      if (robot.dx < -maxX) { robot.dx = -maxX; robot.vx =  Math.abs(robot.vx); }
-      if (robot.dy >  maxY) { robot.dy =  maxY; robot.vy = -Math.abs(robot.vy); }
-      if (robot.dy < -maxY) { robot.dy = -maxY; robot.vy =  Math.abs(robot.vy); }
+      // Bounds are relative to the robot's home (dockCX, dockCY), keeping
+      // the robot body inside the puzzle area
+      const minDX = halfW - robot.dockCX;
+      const maxDX = r.width  - halfW - robot.dockCX;
+      const minDY = halfH - robot.dockCY;
+      const maxDY = r.height - halfH - robot.dockCY;
+      if (robot.dx > maxDX) { robot.dx = maxDX; robot.vx = -Math.abs(robot.vx); }
+      if (robot.dx < minDX) { robot.dx = minDX; robot.vx =  Math.abs(robot.vx); }
+      if (robot.dy > maxDY) { robot.dy = maxDY; robot.vy = -Math.abs(robot.vy); }
+      if (robot.dy < minDY) { robot.dy = minDY; robot.vy =  Math.abs(robot.vy); }
       applyFleetTransform(robot);
     });
     _drawPlayTrails(r);
@@ -833,7 +864,8 @@ canvas.addEventListener('pointerdown', e => {
   for (const robot of robotFleet) {
     const rCX = robot.dockCX + robot.dx;
     const rCY = robot.dockCY + robot.dy;
-    if (Math.hypot(tapX - rCX, tapY - rCY) < Math.max(38 * robot.scale, 22)) {
+    // Generous radius so kids can tap anywhere on the robot body
+    if (Math.hypot(tapX - rCX, tapY - rCY) < Math.max(60 * robot.scale, 36)) {
       robotFleet.forEach(rb => {
         rb.el.classList.remove('play-docked');
         const sectors = [35, 145, 215, 325];
