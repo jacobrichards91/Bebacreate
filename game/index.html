@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Build a Robot Vacuum!</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div id="top-bar">
+    <div id="level-name">Easy</div>
+    <div id="stars-row"></div>
+    <div id="level-num">Level 1</div>
+  </div>
+
+  <!-- MAIN GAME AREA -->
+  <div id="game-wrap">
+
+    <!-- PUZZLE AREA -->
+    <div id="puzzle-area">
+      <canvas id="trail-canvas"></canvas>
+      <div id="silhouette"></div>
+      <div id="snap-layer"></div>
+    </div>
+
+    <!-- PARTS TRAY -->
+    <div id="tray-wrap">
+      <div id="tray-label">PARTS BIN</div>
+      <div id="parts-tray"></div>
+    </div>
+
+  </div>
+
+  <!-- OVERLAYS -->
+  <div id="toast"></div>
+  <div id="clean-overlay" class="hidden">
+    <div id="clean-text">CLEAN! ✨</div>
+    <button id="next-btn"></button>
+  </div>
+
+  <script src="parts.js"></script>
+  <script src="audio.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
