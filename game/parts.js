@@ -368,84 +368,68 @@ const PART_DEFS = {
     }
   },
 
-  // ── Dreame (Level 5) ────────────────────────────────────────────────────────
+  // ── Shark (Level 5) ─────────────────────────────────────────────────────────
   logoDreame: {
-    label:'Dreame Logo', bx:0, by:-90, w:90, h:26, z:9,
+    label:'Shark Logo', bx:0, by:-90, w:90, h:32, z:9,
     svg() {
-      return `<svg width="90" height="26" viewBox="0 0 90 26" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="88" height="24" rx="5" fill="#003FA5" stroke="#002A70" stroke-width="1.5"/>
-        <polygon points="13,5 14.6,11 20,13 14.6,15 13,21 11.4,15 6,13 11.4,11"
-                 fill="#FFD700" stroke="#C8A800" stroke-width="0.5"/>
-        <text x="25" y="19" font-family="Nunito,Arial,sans-serif"
-              font-size="13" font-weight="700" fill="white">Dreame</text>
+      return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
+        <image href="Shark.png" x="5" y="3" width="80" height="26" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     }
   },
 
-  // ── Shark (Level 6) ─────────────────────────────────────────────────────────
+  // ── iLife (Level 6) ─────────────────────────────────────────────────────────
   logoShark: {
-    label:'Shark Logo', bx:0, by:-90, w:90, h:26, z:9,
+    label:'iLife Logo', bx:0, by:-90, w:90, h:32, z:9,
     svg() {
-      return `<svg width="90" height="26" viewBox="0 0 90 26" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="88" height="24" rx="5" fill="#0B1F4A" stroke="#061230" stroke-width="1.5"/>
-        <polygon points="13,22 18,6 23,22" fill="#00BFFF" stroke="#009ACC" stroke-width="0.5"/>
-        <text x="30" y="19" font-family="Nunito,Arial,sans-serif"
-              font-size="13" font-weight="700" fill="white">Shark</text>
+      return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
+        <image href="ilife_logo.png" x="5" y="3" width="80" height="26" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     }
   },
 
-  // ── Ecovacs (Level 7) ───────────────────────────────────────────────────────
+  // ── Samsung (Level 7) ───────────────────────────────────────────────────────
   logoEcovacs: {
-    label:'Ecovacs Logo', bx:0, by:-90, w:90, h:26, z:9,
+    label:'Samsung Logo', bx:0, by:-90, w:90, h:32, z:9,
     svg() {
-      return `<svg width="90" height="26" viewBox="0 0 90 26" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="88" height="24" rx="5" fill="#007A80" stroke="#005055" stroke-width="1.5"/>
-        <circle cx="14" cy="13" r="9" fill="none" stroke="#00E5CC" stroke-width="2.5"/>
-        <line x1="9" y1="13" x2="19" y2="13" stroke="#00E5CC" stroke-width="2" stroke-linecap="round"/>
-        <text x="28" y="19" font-family="Nunito,Arial,sans-serif"
-              font-size="11" font-weight="700" fill="white">Ecovacs</text>
+      return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
+        <image href="samsung_logo.png" x="5" y="3" width="80" height="26" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     }
   },
 
-  // ── Neato (Level 8) ─────────────────────────────────────────────────────────
+  // ── iRobot again (Level 8) ──────────────────────────────────────────────────
   logoNeato: {
-    label:'Neato Logo', bx:0, by:-90, w:90, h:26, z:9,
+    label:'iRobot Logo', bx:0, by:-90, w:90, h:32, z:9,
     svg() {
-      return `<svg width="90" height="26" viewBox="0 0 90 26" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="88" height="24" rx="5" fill="#C04000" stroke="#882C00" stroke-width="1.5"/>
-        <path d="M 6,22 L 6,6 L 14,18 L 14,6" fill="none" stroke="#FFB060" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <text x="22" y="19" font-family="Nunito,Arial,sans-serif"
-              font-size="13" font-weight="700" fill="white">Neato</text>
+      return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
+        <image href="irobot.png" x="5" y="3" width="80" height="26" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     }
   },
 
-  // ── Bissell (Level 9) ───────────────────────────────────────────────────────
+  // ── eufy again (Level 9) ────────────────────────────────────────────────────
   logoBissell: {
-    label:'Bissell Logo', bx:0, by:-90, w:90, h:26, z:9,
+    label:'eufy Logo', bx:0, by:-90, w:90, h:32, z:9,
     svg() {
-      return `<svg width="90" height="26" viewBox="0 0 90 26" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="88" height="24" rx="5" fill="#B80000" stroke="#800000" stroke-width="1.5"/>
-        <path d="M 7,6 L 7,20 L 13,20 Q 19,20 19,15 Q 19,12 14,12 Q 19,12 19,8 Q 19,6 13,6 Z"
-              fill="#FFB0B0" stroke="#FF8080" stroke-width="0.5"/>
-        <text x="24" y="19" font-family="Nunito,Arial,sans-serif"
-              font-size="12" font-weight="700" fill="white">Bissell</text>
+      return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
+        <image href="eufy.png" x="5" y="3" width="80" height="26" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     }
   },
 
-  // ── Dyson (Level 10) ────────────────────────────────────────────────────────
+  // ── Roborock again (Level 10) ───────────────────────────────────────────────
   logoDyson: {
-    label:'Dyson Logo', bx:0, by:-90, w:90, h:26, z:9,
+    label:'Roborock Logo', bx:0, by:-90, w:90, h:32, z:9,
     svg() {
-      return `<svg width="90" height="26" viewBox="0 0 90 26" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="88" height="24" rx="5" fill="#C8A800" stroke="#907800" stroke-width="1.5"/>
-        <path d="M 7,6 L 7,20 L 13,20 Q 22,20 22,13 Q 22,6 13,6 Z"
-              fill="white" stroke="#E8D000" stroke-width="0.5"/>
-        <text x="28" y="19" font-family="Nunito,Arial,sans-serif"
-              font-size="13" font-weight="700" fill="white">Dyson</text>
+      return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
+        <image href="roborock.png" x="5" y="3" width="80" height="26" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     }
   }
