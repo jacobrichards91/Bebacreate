@@ -233,13 +233,21 @@ body {
   gap: 3px;
   cursor: grab;
   touch-action: none;
-  /* ensure minimum touch target */
-  min-width: 52px;
-  min-height: 52px;
+  /* minimum 64px touch target for little fingers */
+  min-width: 64px;
+  min-height: 64px;
   justify-content: center;
   border-radius: 12px;
-  padding: 3px;
+  padding: 6px 4px;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Scale down SVGs inside the tray so 14-part level fits without overflow */
+#parts-tray .part-wrap svg {
+  max-width: clamp(44px, 11vw, 80px);
+  max-height: clamp(44px, 9vw, 72px);
+  width: auto;
+  height: auto;
 }
 
 .part-wrap.floating {

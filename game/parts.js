@@ -8,7 +8,7 @@
 const PART_DEFS = {
 
   body: {
-    label: 'Body', snapX: 0.50, snapY: 0.50, w: 180, h: 180, z: 1, round: true,
+    label: 'Body', snapX: 0.50, snapY: 0.50, w: 180, h: 180, z: 3, round: true,
     svg() {
       return `<svg width="180" height="180" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -28,7 +28,7 @@ const PART_DEFS = {
   },
 
   bumper: {
-    label: 'Bumper', snapX: 0.50, snapY: 0.335, w: 162, h: 62, z: 3,
+    label: 'Bumper', snapX: 0.50, snapY: 0.335, w: 162, h: 62, z: 6,
     svg() {
       return `<svg width="162" height="62" viewBox="0 0 162 62" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -49,7 +49,7 @@ const PART_DEFS = {
   },
 
   wheelL: {
-    label: 'Left Wheel', snapX: 0.335, snapY: 0.50, w: 44, h: 84, z: 2,
+    label: 'Left Wheel', snapX: 0.365, snapY: 0.50, w: 44, h: 84, z: 1,
     svg() {
       return `<svg width="44" height="84" viewBox="0 0 44 84" xmlns="http://www.w3.org/2000/svg">
         <rect x="3" y="3" width="38" height="78" rx="15" fill="#1C1C1C" stroke="#0A0A0A" stroke-width="2"/>
@@ -66,7 +66,7 @@ const PART_DEFS = {
   },
 
   wheelR: {
-    label: 'Right Wheel', snapX: 0.665, snapY: 0.50, w: 44, h: 84, z: 2,
+    label: 'Right Wheel', snapX: 0.635, snapY: 0.50, w: 44, h: 84, z: 1,
     svg() {
       return `<svg width="44" height="84" viewBox="0 0 44 84" xmlns="http://www.w3.org/2000/svg">
         <rect x="3" y="3" width="38" height="78" rx="15" fill="#1C1C1C" stroke="#0A0A0A" stroke-width="2"/>
@@ -102,7 +102,7 @@ const PART_DEFS = {
   },
 
   sideBrush: {
-    label: 'Side Brush', snapX: 0.30, snapY: 0.665, w: 66, h: 66, z: 4, round: true,
+    label: 'Side Brush', snapX: 0.295, snapY: 0.660, w: 66, h: 66, z: 4, round: true,
     svg() {
       const arms = [];
       for (let i = 0; i < 6; i++) {
@@ -195,7 +195,7 @@ const PART_DEFS = {
   },
 
   irSensors: {
-    label: 'IR Sensors', snapX: 0.50, snapY: 0.215, w: 96, h: 28, z: 7,
+    label: 'IR Sensors', snapX: 0.50, snapY: 0.290, w: 96, h: 28, z: 7,
     svg() {
       return `<svg width="96" height="28" viewBox="0 0 96 28" xmlns="http://www.w3.org/2000/svg">
         <rect x="1" y="6" width="94" height="16" rx="8" fill="#2A2A2A" opacity="0.5"/>

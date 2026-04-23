@@ -8,6 +8,7 @@ const state = {
   drag:        null,       // { partId, el, offsetX, offsetY }
   completing:  false,
   spinAnim:    null,       // Web Animations API ref for snap-layer spin
+  fadeRafId:   null,       // rAF id for canvas fade — cancelled on level reset
 };
 
 const SNAP_DIST   = 55;
@@ -162,8 +163,9 @@ window.addEventListener('resize', () => {
 function initLevel() {
   const level = LEVELS[state.levelIdx];
 
-  // cancel any leftover spin animation
+  // cancel any leftover animations from previous level
   if (state.spinAnim) { try { state.spinAnim.cancel(); } catch(e){} state.spinAnim = null; }
+  if (state.fadeRafId) { cancelAnimationFrame(state.fadeRafId); state.fadeRafId = null; }
   snapLayer.style.transform = '';
 
   state.snapped.clear();
@@ -181,8 +183,9 @@ function initLevel() {
   partsTray.innerHTML = '';
   ctx2d.clearRect(0, 0, canvas.width, canvas.height);
 
-  // hide completion overlay
+  // hide completion overlay, reset text style for next level
   cleanOverlay.classList.add('hidden');
+  cleanText.style.fontSize = '';
   nextBtn.classList.remove('visible');
   nextBtn.style.pointerEvents = 'none';
 
@@ -565,18 +568,19 @@ function fadeCanvas() {
   let alpha = 1;
 
   function step() {
-    alpha -= 0.05;
+    if (state.fadeRafId === null) return; // cancelled by level reset
+    alpha -= 0.045;
     if (alpha <= 0) {
       ctx2d.clearRect(0, 0, W, H);
+      state.fadeRafId = null;
       return;
     }
-    // fill with page background at increasing opacity to "paint over" trail
-    ctx2d.fillStyle = `rgba(245,242,237,${Math.min(0.18, 0.05 + (1 - alpha) * 0.15)})`;
+    ctx2d.fillStyle = `rgba(245,242,237,${Math.min(0.20, 0.04 + (1 - alpha) * 0.18)})`;
     ctx2d.fillRect(0, 0, W, H);
-    requestAnimationFrame(step);
+    state.fadeRafId = requestAnimationFrame(step);
   }
 
-  setTimeout(() => requestAnimationFrame(step), 300);
+  setTimeout(() => { state.fadeRafId = requestAnimationFrame(step); }, 300);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
