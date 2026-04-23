@@ -21,6 +21,7 @@ let _playState = 'docked';       // 'docked' | 'cleaning' | 'returning'
 
 const SNAP_DIST   = 55;
 const ENCOURAGE   = ['Oops! Try again! 😅', 'Almost! 💪', 'Keep trying! 🌟', 'So close! 🎯', "You've got this! 🤖"];
+const LOGO_PARTS  = ['logoIrobot', 'logoEufy', 'logoRoborock', 'logoTapo', 'logoDreame', 'logoShark', 'logoEcovacs'];
 
 // ══════════════════════════════════════════════════════════════════════════════
 // DOM refs
@@ -192,6 +193,12 @@ window.addEventListener('resize', () => {
 // ══════════════════════════════════════════════════════════════════════════════
 function initLevel() {
   const level = LEVELS[state.levelIdx];
+
+  // Randomise the logo for this level
+  const logoIdx = level.parts.findIndex(id => id.startsWith('logo'));
+  if (logoIdx >= 0) {
+    level.parts[logoIdx] = LOGO_PARTS[Math.floor(Math.random() * LOGO_PARTS.length)];
+  }
 
   // cancel any leftover animations from previous level
   stopPlayMode();
