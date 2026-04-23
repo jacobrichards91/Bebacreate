@@ -326,7 +326,7 @@ const PART_DEFS = {
 
   // ── iRobot (Level 1) ────────────────────────────────────────────────────────
   logoIrobot: {
-    label:'iRobot Logo', bx:0, by:-90, w:90, h:32, z:9,
+    label:'iRobot Logo', bx:0, by:-90, w:90, h:32, z:9, png:'irobot.png',
     svg() {
       return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
         <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
@@ -337,7 +337,7 @@ const PART_DEFS = {
 
   // ── eufy (Level 2) ──────────────────────────────────────────────────────────
   logoEufy: {
-    label:'eufy Logo', bx:0, by:-90, w:90, h:32, z:9,
+    label:'eufy Logo', bx:0, by:-90, w:90, h:32, z:9, png:'eufy.png',
     svg() {
       return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
         <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
@@ -348,7 +348,7 @@ const PART_DEFS = {
 
   // ── Roborock (Level 3) ──────────────────────────────────────────────────────
   logoRoborock: {
-    label:'Roborock Logo', bx:0, by:-90, w:90, h:32, z:9,
+    label:'Roborock Logo', bx:0, by:-90, w:90, h:32, z:9, png:'roborock.png',
     svg() {
       return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
         <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
@@ -359,7 +359,7 @@ const PART_DEFS = {
 
   // ── 4th brand (Level 4) — logo.png ──────────────────────────────────────────
   logoTapo: {
-    label:'Logo', bx:0, by:-90, w:90, h:32, z:9,
+    label:'Logo', bx:0, by:-90, w:90, h:32, z:9, png:'logo.png',
     svg() {
       return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
         <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
@@ -370,7 +370,7 @@ const PART_DEFS = {
 
   // ── Shark (Level 5) ─────────────────────────────────────────────────────────
   logoDreame: {
-    label:'Shark Logo', bx:0, by:-90, w:90, h:32, z:9,
+    label:'Shark Logo', bx:0, by:-90, w:90, h:32, z:9, png:'Shark.png',
     svg() {
       return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
         <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
@@ -381,7 +381,7 @@ const PART_DEFS = {
 
   // ── iLife (Level 6) ─────────────────────────────────────────────────────────
   logoShark: {
-    label:'iLife Logo', bx:0, by:-90, w:90, h:32, z:9,
+    label:'iLife Logo', bx:0, by:-90, w:90, h:32, z:9, png:'ilife_logo.png',
     svg() {
       return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
         <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
@@ -392,7 +392,7 @@ const PART_DEFS = {
 
   // ── Samsung (Level 7) ───────────────────────────────────────────────────────
   logoEcovacs: {
-    label:'Samsung Logo', bx:0, by:-90, w:90, h:32, z:9,
+    label:'Samsung Logo', bx:0, by:-90, w:90, h:32, z:9, png:'samsung_logo.png',
     svg() {
       return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
         <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
@@ -403,7 +403,7 @@ const PART_DEFS = {
 
   // ── iRobot again (Level 8) ──────────────────────────────────────────────────
   logoNeato: {
-    label:'iRobot Logo', bx:0, by:-90, w:90, h:32, z:9,
+    label:'iRobot Logo', bx:0, by:-90, w:90, h:32, z:9, png:'irobot.png',
     svg() {
       return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
         <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
@@ -414,7 +414,7 @@ const PART_DEFS = {
 
   // ── eufy again (Level 9) ────────────────────────────────────────────────────
   logoBissell: {
-    label:'eufy Logo', bx:0, by:-90, w:90, h:32, z:9,
+    label:'eufy Logo', bx:0, by:-90, w:90, h:32, z:9, png:'eufy.png',
     svg() {
       return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
         <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
@@ -425,7 +425,7 @@ const PART_DEFS = {
 
   // ── Roborock again (Level 10) ───────────────────────────────────────────────
   logoDyson: {
-    label:'Roborock Logo', bx:0, by:-90, w:90, h:32, z:9,
+    label:'Roborock Logo', bx:0, by:-90, w:90, h:32, z:9, png:'roborock.png',
     svg() {
       return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
         <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>

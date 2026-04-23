@@ -213,9 +213,11 @@ function initLevel() {
 
   // hide completion overlay, reset text style for next level
   cleanOverlay.classList.add('hidden');
+  cleanOverlay.classList.remove('fading');
   cleanText.style.fontSize = '';
   nextBtn.classList.remove('visible');
   nextBtn.style.pointerEvents = 'none';
+  nextBtn.innerHTML = '';
 
   // snap hints
   resizeCanvas();
@@ -472,9 +474,22 @@ async function startCompletionSequence() {
   const newStar = starEls[state.starsEarned - 1];
   if (newStar) { newStar.classList.add('pop'); }
 
-  // 5. Next Level button after a pause
+  // 5. Fade out the CLEAN text + backdrop so the play area is clear
+  setTimeout(() => cleanOverlay.classList.add('fading'), 2000);
+
+  // 6. Next Level button slides in from the right after a pause
   await delay(2800);
-  nextBtn.textContent = isLast ? 'Play Again 🔄' : 'Next Level →';
+  const nextIdx = state.levelIdx + 1;
+  if (isLast) {
+    nextBtn.textContent = 'Play Again 🔄';
+  } else {
+    const nextParts = LEVELS[nextIdx].parts;
+    const nextLogoId = nextParts[nextParts.length - 1];
+    const nextPng = PART_DEFS[nextLogoId]?.png;
+    nextBtn.innerHTML = nextPng
+      ? `<img class="next-logo" src="${nextPng}" alt=""> <span>Next →</span>`
+      : '<span>Next Level →</span>';
+  }
   nextBtn.classList.add('visible');
   nextBtn.style.pointerEvents = 'auto';
 }
