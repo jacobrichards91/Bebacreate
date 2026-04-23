@@ -13,8 +13,11 @@ const state = {
   playRafId:   null,       // rAF id for play-mode animation loop
 };
 
-// Play-mode: offset of snap-layer from its home position, in puzzle-area px
-let _playDX = 0, _playDY = 0, _playTDX = 0, _playTDY = 0;
+// Play-mode robot position (puzzle-area center offsets, px)
+let _playDX = 0, _playDY = 0;
+let _dockDX = 0, _dockDY = 0;   // dock/home position
+let _vx = 0, _vy = 0;           // velocity while bouncing
+let _playState = 'docked';       // 'docked' | 'cleaning' | 'returning'
 
 const SNAP_DIST   = 55;
 const ENCOURAGE   = ['Oops! Try again! 😅', 'Almost! 💪', 'Keep trying! 🌟', 'So close! 🎯', "You've got this! 🤖"];
@@ -589,26 +592,57 @@ function startDrivingAnimation() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// Play mode — tap anywhere to drive the real robot; tap the dock to go home
+// Play mode — power button bounces robot; dock returns it home
 // ══════════════════════════════════════════════════════════════════════════════
 function startPlayMode() {
+  const r  = puzzleArea.getBoundingClientRect();
+  // Dock prong tips sit 62px below puzzle-area top.
+  // Bumper centre at dy: r.height/2 + dy - 98
+  // Set bumper centre = 62 → dy = 62 + 98 - r.height/2 = 160 - r.height/2
+  _dockDX = 0;
+  _dockDY = 160 - r.height / 2;
+
   _playDX = 0; _playDY = 0;
-  _playTDX = 0; _playTDY = 0;
-  snapLayer.style.transform = '';
-  ctx2d.clearRect(0, 0, canvas.width, canvas.height);
+  _vx = 0; _vy = 0;
+  _playState = 'returning';   // glide robot from centre up to dock
+
   state.playMode = true;
   canvas.style.pointerEvents = 'auto';
-  canvas.style.cursor = 'crosshair';
+  canvas.style.cursor = 'default';
+  ctx2d.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Add dock button
+  state.playRafId = requestAnimationFrame(tickPlayMode);
+  _buildDock();
+}
+
+function _buildDock() {
+  document.getElementById('play-dock')?.remove();
   const dock = document.createElement('div');
   dock.id = 'play-dock';
-  dock.innerHTML = '<span class="dock-icon">⚡</span><span class="dock-label">DOCK</span>';
+  dock.innerHTML = `<svg width="160" height="62" viewBox="0 0 160 62" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="dkgrd" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#484848"/>
+        <stop offset="100%" stop-color="#1E1E1E"/>
+      </linearGradient>
+    </defs>
+    <rect x="5" y="0" width="150" height="46" rx="10" fill="url(#dkgrd)" stroke="#666" stroke-width="1.5"/>
+    <rect x="15" y="3" width="130" height="4" rx="2" fill="rgba(255,255,255,0.12)"/>
+    <rect class="dock-led" x="20" y="11" width="120" height="6" rx="3" fill="#00CC66" opacity="0.85"/>
+    <text x="80" y="38" text-anchor="middle" font-family="Nunito,sans-serif"
+          font-size="11" font-weight="900" fill="#888" letter-spacing="0.08em">HOME BASE</text>
+    <rect x="50" y="42" width="14" height="20" rx="4" fill="#C8A84B" stroke="#907010" stroke-width="1.2"/>
+    <rect x="96" y="42" width="14" height="20" rx="4" fill="#C8A84B" stroke="#907010" stroke-width="1.2"/>
+    <rect x="53" y="44" width="5" height="8" rx="2" fill="#F0D070" opacity="0.6"/>
+    <rect x="99" y="44" width="5" height="8" rx="2" fill="#F0D070" opacity="0.6"/>
+  </svg>`;
   puzzleArea.appendChild(dock);
   dock.addEventListener('pointerdown', e => {
     e.stopPropagation();
-    _playTDX = 0; _playTDY = 0;
-    if (!state.playRafId) state.playRafId = requestAnimationFrame(tickPlayMode);
+    if (_playState === 'cleaning') {
+      _playState = 'returning';
+      if (!state.playRafId) state.playRafId = requestAnimationFrame(tickPlayMode);
+    }
   });
 }
 
@@ -620,53 +654,91 @@ function stopPlayMode() {
   canvas.style.cursor = '';
   ctx2d.clearRect(0, 0, canvas.width, canvas.height);
   snapLayer.style.transform = '';
+  snapLayer.classList.remove('play-docked');
   document.getElementById('play-dock')?.remove();
+  _playState = 'docked';
+}
+
+function _drawPlayTrail(r) {
+  const cx = canvas.width  * (0.5 + _playDX / r.width);
+  const cy = canvas.height * (0.5 + _playDY / r.height);
+  ctx2d.fillStyle = 'rgba(245,242,237,0.06)';
+  ctx2d.fillRect(0, 0, canvas.width, canvas.height);
+  ctx2d.beginPath();
+  ctx2d.arc(cx, cy, 16, 0, Math.PI * 2);
+  ctx2d.fillStyle = 'rgba(173,232,244,0.32)';
+  ctx2d.fill();
 }
 
 function tickPlayMode() {
   if (!state.playMode) return;
-  const dx = _playTDX - _playDX;
-  const dy = _playTDY - _playDY;
-  const d  = Math.hypot(dx, dy);
+  const r = puzzleArea.getBoundingClientRect();
 
-  if (d < 1.5) {
-    _playDX = _playTDX; _playDY = _playTDY;
+  // ── Bouncing ──────────────────────────────────────────────────────────────
+  if (_playState === 'cleaning') {
+    const maxDX = r.width  / 2 - 96;
+    const minDY = -(r.height / 2 - 130);   // bumper top at puzzle-area top
+    const maxDY =  r.height / 2 - 86;      // cliff sensors at puzzle-area bottom
+
+    _playDX += _vx;
+    _playDY += _vy;
+
+    if (_playDX >  maxDX) { _playDX =  maxDX; _vx = -Math.abs(_vx); }
+    if (_playDX < -maxDX) { _playDX = -maxDX; _vx =  Math.abs(_vx); }
+    if (_playDY >  maxDY) { _playDY =  maxDY; _vy = -Math.abs(_vy); }
+    if (_playDY <  minDY) { _playDY =  minDY; _vy =  Math.abs(_vy); }
+
     snapLayer.style.transform = `translate(${_playDX}px,${_playDY}px)`;
-    state.playRafId = null;
+    _drawPlayTrail(r);
+    state.playRafId = requestAnimationFrame(tickPlayMode);
     return;
   }
 
-  const speed = Math.min(d * 0.10, 12);
-  _playDX += (dx / d) * speed;
-  _playDY += (dy / d) * speed;
-  snapLayer.style.transform = `translate(${_playDX}px,${_playDY}px)`;
+  // ── Returning to dock ─────────────────────────────────────────────────────
+  if (_playState === 'returning') {
+    const dx = _dockDX - _playDX;
+    const dy = _dockDY - _playDY;
+    const d  = Math.hypot(dx, dy);
 
-  // fading trail dot on canvas at robot's canvas-space position
-  const r  = puzzleArea.getBoundingClientRect();
-  const cx = canvas.width  * (0.5 + _playDX / r.width);
-  const cy = canvas.height * (0.5 + _playDY / r.height);
-  ctx2d.fillStyle = 'rgba(245,242,237,0.14)';
-  ctx2d.fillRect(0, 0, canvas.width, canvas.height);
-  ctx2d.beginPath();
-  ctx2d.arc(cx, cy, 14, 0, Math.PI * 2);
-  ctx2d.fillStyle = 'rgba(173,232,244,0.5)';
-  ctx2d.fill();
+    if (d < 2) {
+      _playDX = _dockDX; _playDY = _dockDY;
+      snapLayer.style.transform = `translate(${_playDX}px,${_playDY}px)`;
+      ctx2d.clearRect(0, 0, canvas.width, canvas.height);
+      _playState = 'docked';
+      state.playRafId = null;
+      snapLayer.classList.add('play-docked');  // power button glow hint
+      return;
+    }
 
-  state.playRafId = requestAnimationFrame(tickPlayMode);
+    const speed = Math.min(d * 0.08, 10);
+    _playDX += (dx / d) * speed;
+    _playDY += (dy / d) * speed;
+    snapLayer.style.transform = `translate(${_playDX}px,${_playDY}px)`;
+    _drawPlayTrail(r);
+    state.playRafId = requestAnimationFrame(tickPlayMode);
+  }
 }
 
-// Canvas tap listener — converts to puzzle-area center offset
+// Tap the robot's power button (centre of robot) to start cleaning
 canvas.addEventListener('pointerdown', e => {
   if (!state.playMode) return;
-  const r   = puzzleArea.getBoundingClientRect();
-  const tdx = (e.clientX - r.left) - r.width  / 2;
-  const tdy = (e.clientY - r.top)  - r.height / 2;
-  // clamp so robot body stays mostly in view
-  const maxDX = r.width  / 2 - 30;
-  const maxDY = r.height / 2 - 30;
-  _playTDX = Math.max(-maxDX, Math.min(maxDX, tdx));
-  _playTDY = Math.max(-maxDY, Math.min(maxDY, tdy));
-  if (!state.playRafId) state.playRafId = requestAnimationFrame(tickPlayMode);
+  const r = puzzleArea.getBoundingClientRect();
+  const tapX = e.clientX - r.left;
+  const tapY = e.clientY - r.top;
+  const robotCX = r.width  / 2 + _playDX;
+  const robotCY = r.height / 2 + _playDY;
+
+  if (Math.hypot(tapX - robotCX, tapY - robotCY) < 38 && _playState === 'docked') {
+    snapLayer.classList.remove('play-docked');
+    // Diagonal launch angle (avoids boring straight bounces)
+    const sectors  = [35, 145, 215, 325];
+    const angle    = (sectors[Math.floor(Math.random() * 4)] + (Math.random() - 0.5) * 30) * Math.PI / 180;
+    _vx = Math.cos(angle) * 2.2;
+    _vy = Math.sin(angle) * 2.2;
+    _playState = 'cleaning';
+    ctx2d.clearRect(0, 0, canvas.width, canvas.height);
+    if (!state.playRafId) state.playRafId = requestAnimationFrame(tickPlayMode);
+  }
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
