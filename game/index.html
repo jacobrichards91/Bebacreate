@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Build a Robot Vacuum!</title>
+  <title>Build a Robot Vacuum! 🤖</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
@@ -13,7 +13,10 @@
   <!-- TOP BAR -->
   <div id="top-bar">
     <div id="level-name">Easy</div>
-    <div id="stars-row"></div>
+    <div id="top-center">
+      <div id="stars-row"></div>
+      <div id="level-dots"></div>
+    </div>
     <div id="level-num">Level 1</div>
   </div>
 
@@ -23,23 +26,48 @@
     <!-- PUZZLE AREA -->
     <div id="puzzle-area">
       <canvas id="trail-canvas"></canvas>
-      <div id="silhouette"></div>
+
+      <!-- Vacuum silhouette shadow -->
+      <div id="silhouette">
+        <svg viewBox="0 0 230 260" xmlns="http://www.w3.org/2000/svg" width="230" height="260" aria-hidden="true">
+          <!-- Left wheel bump -->
+          <rect x="4"   y="90" width="30" height="78" rx="12" fill="#2C2C2C"/>
+          <!-- Right wheel bump -->
+          <rect x="196" y="90" width="30" height="78" rx="12" fill="#2C2C2C"/>
+          <!-- Main body disc -->
+          <circle cx="115" cy="148" r="106" fill="#2C2C2C"/>
+          <!-- Front bumper D-shape overlay -->
+          <path d="M 20,148 Q 20,42 115,42 Q 210,42 210,148 Z" fill="#363636"/>
+        </svg>
+      </div>
+
+      <!-- Snap hints rendered here by JS -->
+      <div id="snap-hints"></div>
+
+      <!-- Snapped parts rendered here -->
       <div id="snap-layer"></div>
+
+      <!-- Parts remaining badge -->
+      <div id="parts-counter"></div>
     </div>
 
     <!-- PARTS TRAY -->
     <div id="tray-wrap">
-      <div id="tray-label">PARTS BIN</div>
+      <div id="tray-label">⬇ PARTS BIN ⬇</div>
       <div id="parts-tray"></div>
     </div>
 
   </div>
 
   <!-- OVERLAYS -->
-  <div id="toast"></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+
   <div id="clean-overlay" class="hidden">
-    <div id="clean-text">CLEAN! ✨</div>
-    <button id="next-btn"></button>
+    <div id="clean-backdrop"></div>
+    <div id="clean-content">
+      <div id="clean-text">CLEAN! ✨</div>
+      <button id="next-btn" aria-label="Next Level"></button>
+    </div>
   </div>
 
   <script src="parts.js"></script>
