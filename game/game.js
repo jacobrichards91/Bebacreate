@@ -13,15 +13,97 @@ const state = {
   playRafId:   null,       // rAF id for play-mode animation loop
 };
 
-// Play-mode robot position (puzzle-area center offsets, px)
-let _playDX = 0, _playDY = 0;
-let _dockDX = 0, _dockDY = 0;   // dock/home position
-let _vx = 0, _vy = 0;           // velocity while bouncing
-let _playState = 'docked';       // 'docked' | 'cleaning' | 'returning'
+// Fleet of completed robots (persists across levels)
+// Each entry: { el, dockCX, dockCY, scale, dx, dy, vx, vy }
+const robotFleet = [];
+let _playState = 'docked';  // 'docked' | 'cleaning' | 'returning'
 
 const SNAP_DIST   = 55;
 const ENCOURAGE   = ['Oops! Try again! 😅', 'Almost! 💪', 'Keep trying! 🌟', 'So close! 🎯', "You've got this! 🤖"];
 const LOGO_PARTS  = ['logoIrobot', 'logoEufy', 'logoRoborock', 'logoTapo', 'logoDreame', 'logoShark', 'logoEcovacs'];
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Fleet helpers
+// ══════════════════════════════════════════════════════════════════════════════
+// Robot visual bounding box (px, full scale): width=246, height=214
+const ROBOT_VW = 246, ROBOT_VH = 214;
+const DOCK_H   = 64;   // dock zone height (px) at top of puzzle area
+
+function calcFleetScale(N) {
+  const r = puzzleArea.getBoundingClientRect();
+  const scaleW = (r.width - 4) / N / ROBOT_VW;
+  const scaleH = DOCK_H / ROBOT_VH;
+  return Math.max(Math.min(scaleW, scaleH, 0.30), 0.10);
+}
+
+function calcDockCenters(N) {
+  const r = puzzleArea.getBoundingClientRect();
+  const slotW = r.width / N;
+  return Array.from({ length: N }, (_, i) => ({
+    cx: slotW / 2 + i * slotW,
+    cy: DOCK_H / 2,          // centre of dock zone
+  }));
+}
+
+function applyFleetTransform(robot) {
+  const r  = puzzleArea.getBoundingClientRect();
+  const tx = robot.dockCX - r.width  / 2 + robot.dx;
+  const ty = robot.dockCY - r.height / 2 + robot.dy;
+  robot.el.style.transform = `translate(${tx}px,${ty}px) scale(${robot.scale})`;
+}
+
+function updateFleetLayout(animateNew) {
+  const N = robotFleet.length;
+  if (N === 0) { _buildDock(); return; }
+
+  const scale   = calcFleetScale(N);
+  const centers = calcDockCenters(N);
+
+  robotFleet.forEach((robot, i) => {
+    const scaleChanged = Math.abs(robot.scale - scale) > 0.001;
+    robot.scale  = scale;
+    robot.dockCX = centers[i].cx;
+    robot.dockCY = centers[i].cy;
+
+    const isNew = animateNew && i === N - 1;
+    if (isNew) {
+      // Start at puzzle centre (full-size), then shrink into dock slot
+      const r = puzzleArea.getBoundingClientRect();
+      robot.el.style.transition = '';
+      robot.el.style.transform  = 'translate(0px,0px) scale(1)';
+      requestAnimationFrame(() => {
+        robot.el.style.transition = 'transform 0.85s cubic-bezier(0.34,1.56,0.64,1)';
+        applyFleetTransform(robot);
+        setTimeout(() => {
+          robot.el.style.transition = '';
+          robot.el.classList.add('play-docked');
+        }, 880);
+      });
+    } else if (scaleChanged) {
+      robot.el.style.transition = 'transform 0.7s ease-in-out';
+      applyFleetTransform(robot);
+      setTimeout(() => { robot.el.style.transition = ''; }, 720);
+    } else {
+      applyFleetTransform(robot);
+    }
+  });
+  _buildDock();
+}
+
+function captureRobot() {
+  const clone = snapLayer.cloneNode(true);
+  clone.removeAttribute('id');
+  clone.classList.add('fleet-robot');
+  clone.classList.remove('play-docked');
+  clone.style.cssText = 'position:absolute;inset:0;pointer-events:none;transform-origin:50% 50%;z-index:8;';
+  puzzleArea.appendChild(clone);
+  robotFleet.push({ el: clone, dockCX: 0, dockCY: DOCK_H / 2, scale: 0.3, dx: 0, dy: 0, vx: 0, vy: 0 });
+}
+
+function clearFleet() {
+  robotFleet.forEach(r => r.el.remove());
+  robotFleet.length = 0;
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // DOM refs
@@ -177,7 +259,6 @@ function resizeCanvas() {
 window.addEventListener('resize', () => {
   resizeCanvas();
   repositionSnapHints();
-  // reposition already-snapped parts
   state.snapped.forEach(partId => {
     const el  = snapLayer.querySelector(`[data-part-id="${partId}"]`);
     if (!el) return;
@@ -186,6 +267,7 @@ window.addEventListener('resize', () => {
     el.style.left = (r.width  / 2 + (def.bx || 0) - def.w / 2) + 'px';
     el.style.top  = (r.height / 2 + (def.by || 0) - def.h / 2) + 'px';
   });
+  updateFleetLayout(false);
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -232,6 +314,8 @@ function initLevel() {
   // snap hints
   resizeCanvas();
   renderSnapHints();
+  snapLayer.style.display = '';   // ensure visible for building (was hidden in play mode)
+  updateFleetLayout(false);       // position prior robots in dock, rebuild dock visual
 
   // parts counter
   updatePartsCounter();
@@ -599,54 +683,56 @@ function startDrivingAnimation() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// Play mode — power button bounces robot; dock returns it home
+// Play mode — all fleet robots bounce; dock returns them home
 // ══════════════════════════════════════════════════════════════════════════════
 function startPlayMode() {
-  const r  = puzzleArea.getBoundingClientRect();
-  // Dock prong tips sit 62px below puzzle-area top.
-  // Bumper centre at dy: r.height/2 + dy - 98
-  // Set bumper centre = 62 → dy = 62 + 98 - r.height/2 = 160 - r.height/2
-  _dockDX = 0;
-  _dockDY = 160 - r.height / 2;
-
-  _playDX = 0; _playDY = 0;
-  _vx = 0; _vy = 0;
-  _playState = 'returning';   // glide robot from centre up to dock
-
+  captureRobot();
+  snapLayer.style.display = 'none';   // hide build layer; fleet clone takes over
+  _playState = 'docked';
   state.playMode = true;
   canvas.style.pointerEvents = 'auto';
   canvas.style.cursor = 'default';
   ctx2d.clearRect(0, 0, canvas.width, canvas.height);
-
-  state.playRafId = requestAnimationFrame(tickPlayMode);
-  _buildDock();
+  updateFleetLayout(true);            // shrink new robot into dock slot
 }
 
 function _buildDock() {
   document.getElementById('play-dock')?.remove();
+  const r = puzzleArea.getBoundingClientRect();
+  const W = r.width;
+  const N = robotFleet.length;
+
+  const prongs = N > 0
+    ? robotFleet.map(robot => {
+        const cx = robot.dockCX;
+        return `<rect x="${cx - 7}" y="44" width="14" height="20" rx="4" fill="#C8A84B" stroke="#907010" stroke-width="1.2"/>
+                <rect x="${cx - 4}" y="46" width="5"  height="8"  rx="2" fill="#F0D070" opacity="0.6"/>`;
+      }).join('')
+    : `<rect x="${W/2 - 7}" y="44" width="14" height="20" rx="4" fill="#C8A84B" stroke="#907010" stroke-width="1.2"/>
+       <rect x="${W/2 - 4}" y="46" width="5"  height="8"  rx="2" fill="#F0D070" opacity="0.6"/>`;
+
   const dock = document.createElement('div');
   dock.id = 'play-dock';
-  dock.innerHTML = `<svg width="160" height="62" viewBox="0 0 160 62" xmlns="http://www.w3.org/2000/svg">
+  dock.innerHTML = `<svg width="${W}" height="${DOCK_H}" viewBox="0 0 ${W} ${DOCK_H}" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="dkgrd" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="#484848"/>
         <stop offset="100%" stop-color="#1E1E1E"/>
       </linearGradient>
     </defs>
-    <rect x="5" y="0" width="150" height="46" rx="10" fill="url(#dkgrd)" stroke="#666" stroke-width="1.5"/>
-    <rect x="15" y="3" width="130" height="4" rx="2" fill="rgba(255,255,255,0.12)"/>
-    <rect class="dock-led" x="20" y="11" width="120" height="6" rx="3" fill="#00CC66" opacity="0.85"/>
-    <text x="80" y="38" text-anchor="middle" font-family="Nunito,sans-serif"
+    <rect x="0" y="0" width="${W}" height="46" fill="url(#dkgrd)" stroke="#555" stroke-width="1"/>
+    <rect x="10" y="3" width="${W-20}" height="4" rx="2" fill="rgba(255,255,255,0.10)"/>
+    <rect x="20" y="11" width="${W-40}" height="6" rx="3" fill="#00CC66" opacity="0.85"/>
+    <text x="${W/2}" y="36" text-anchor="middle" font-family="Nunito,sans-serif"
           font-size="11" font-weight="900" fill="#888" letter-spacing="0.08em">HOME BASE</text>
-    <rect x="50" y="42" width="14" height="20" rx="4" fill="#C8A84B" stroke="#907010" stroke-width="1.2"/>
-    <rect x="96" y="42" width="14" height="20" rx="4" fill="#C8A84B" stroke="#907010" stroke-width="1.2"/>
-    <rect x="53" y="44" width="5" height="8" rx="2" fill="#F0D070" opacity="0.6"/>
-    <rect x="99" y="44" width="5" height="8" rx="2" fill="#F0D070" opacity="0.6"/>
+    ${prongs}
   </svg>`;
   puzzleArea.appendChild(dock);
+
   dock.addEventListener('pointerdown', e => {
     e.stopPropagation();
-    if (_playState === 'cleaning') {
+    if (state.playMode && _playState === 'cleaning') {
+      robotFleet.forEach(r => r.el.classList.remove('play-docked'));
       _playState = 'returning';
       if (!state.playRafId) state.playRafId = requestAnimationFrame(tickPlayMode);
     }
@@ -656,25 +742,32 @@ function _buildDock() {
 function stopPlayMode() {
   if (!state.playMode) return;
   state.playMode = false;
+  _playState = 'docked';
   if (state.playRafId) { cancelAnimationFrame(state.playRafId); state.playRafId = null; }
   canvas.style.pointerEvents = 'none';
   canvas.style.cursor = '';
   ctx2d.clearRect(0, 0, canvas.width, canvas.height);
-  snapLayer.style.transform = '';
-  snapLayer.classList.remove('play-docked');
+  // Reset fleet positions and stop glow
+  robotFleet.forEach(r => {
+    r.dx = 0; r.dy = 0;
+    r.el.classList.remove('play-docked');
+    applyFleetTransform(r);
+  });
+  snapLayer.style.display = '';   // show build layer again for next level
   document.getElementById('play-dock')?.remove();
-  _playState = 'docked';
 }
 
-function _drawPlayTrail(r) {
-  const cx = canvas.width  * (0.5 + _playDX / r.width);
-  const cy = canvas.height * (0.5 + _playDY / r.height);
-  ctx2d.fillStyle = 'rgba(245,242,237,0.06)';
+function _drawPlayTrails(r) {
+  ctx2d.fillStyle = 'rgba(245,242,237,0.05)';
   ctx2d.fillRect(0, 0, canvas.width, canvas.height);
-  ctx2d.beginPath();
-  ctx2d.arc(cx, cy, 16, 0, Math.PI * 2);
-  ctx2d.fillStyle = 'rgba(173,232,244,0.32)';
-  ctx2d.fill();
+  robotFleet.forEach(robot => {
+    const cx = canvas.width  * ((robot.dockCX + robot.dx) / r.width);
+    const cy = canvas.height * ((robot.dockCY + robot.dy) / r.height);
+    ctx2d.beginPath();
+    ctx2d.arc(cx, cy, Math.max(14 * robot.scale, 4), 0, Math.PI * 2);
+    ctx2d.fillStyle = 'rgba(173,232,244,0.35)';
+    ctx2d.fill();
+  });
 }
 
 function tickPlayMode() {
@@ -683,68 +776,76 @@ function tickPlayMode() {
 
   // ── Bouncing ──────────────────────────────────────────────────────────────
   if (_playState === 'cleaning') {
-    const maxDX = r.width  / 2 - 96;
-    const minDY = -(r.height / 2 - 130);   // bumper top at puzzle-area top
-    const maxDY =  r.height / 2 - 86;      // cliff sensors at puzzle-area bottom
-
-    _playDX += _vx;
-    _playDY += _vy;
-
-    if (_playDX >  maxDX) { _playDX =  maxDX; _vx = -Math.abs(_vx); }
-    if (_playDX < -maxDX) { _playDX = -maxDX; _vx =  Math.abs(_vx); }
-    if (_playDY >  maxDY) { _playDY =  maxDY; _vy = -Math.abs(_vy); }
-    if (_playDY <  minDY) { _playDY =  minDY; _vy =  Math.abs(_vy); }
-
-    snapLayer.style.transform = `translate(${_playDX}px,${_playDY}px)`;
-    _drawPlayTrail(r);
+    robotFleet.forEach(robot => {
+      robot.dx += robot.vx;
+      robot.dy += robot.vy;
+      const halfW = ROBOT_VW / 2 * robot.scale;
+      const halfH = ROBOT_VH / 2 * robot.scale;
+      const maxX  =  r.width  / 2 - halfW;
+      const maxY  =  r.height / 2 - halfH;
+      if (robot.dx >  maxX) { robot.dx =  maxX; robot.vx = -Math.abs(robot.vx); }
+      if (robot.dx < -maxX) { robot.dx = -maxX; robot.vx =  Math.abs(robot.vx); }
+      if (robot.dy >  maxY) { robot.dy =  maxY; robot.vy = -Math.abs(robot.vy); }
+      if (robot.dy < -maxY) { robot.dy = -maxY; robot.vy =  Math.abs(robot.vy); }
+      applyFleetTransform(robot);
+    });
+    _drawPlayTrails(r);
     state.playRafId = requestAnimationFrame(tickPlayMode);
     return;
   }
 
   // ── Returning to dock ─────────────────────────────────────────────────────
   if (_playState === 'returning') {
-    const dx = _dockDX - _playDX;
-    const dy = _dockDY - _playDY;
-    const d  = Math.hypot(dx, dy);
+    let allHome = true;
+    robotFleet.forEach(robot => {
+      const d = Math.hypot(robot.dx, robot.dy);
+      if (d < 2) { robot.dx = 0; robot.dy = 0; }
+      else {
+        const speed = Math.min(d * 0.08, 10);
+        robot.dx -= (robot.dx / d) * speed;
+        robot.dy -= (robot.dy / d) * speed;
+        allHome = false;
+      }
+      applyFleetTransform(robot);
+    });
+    _drawPlayTrails(r);
 
-    if (d < 2) {
-      _playDX = _dockDX; _playDY = _dockDY;
-      snapLayer.style.transform = `translate(${_playDX}px,${_playDY}px)`;
+    if (allHome) {
       ctx2d.clearRect(0, 0, canvas.width, canvas.height);
       _playState = 'docked';
       state.playRafId = null;
-      snapLayer.classList.add('play-docked');  // power button glow hint
-      return;
+      robotFleet.forEach(r => r.el.classList.add('play-docked'));
+    } else {
+      state.playRafId = requestAnimationFrame(tickPlayMode);
     }
-
-    const speed = Math.min(d * 0.08, 10);
-    _playDX += (dx / d) * speed;
-    _playDY += (dy / d) * speed;
-    snapLayer.style.transform = `translate(${_playDX}px,${_playDY}px)`;
-    _drawPlayTrail(r);
-    state.playRafId = requestAnimationFrame(tickPlayMode);
+    return;
   }
+
+  state.playRafId = null;
 }
 
-// Tap the robot's power button (centre of robot) to start cleaning
+// Tap any fleet robot's power button to launch all robots
 canvas.addEventListener('pointerdown', e => {
-  if (!state.playMode) return;
+  if (!state.playMode || _playState !== 'docked') return;
   const r = puzzleArea.getBoundingClientRect();
   const tapX = e.clientX - r.left;
   const tapY = e.clientY - r.top;
-  const robotCX = r.width  / 2 + _playDX;
-  const robotCY = r.height / 2 + _playDY;
-
-  if (Math.hypot(tapX - robotCX, tapY - robotCY) < 38 && _playState === 'docked') {
-    snapLayer.classList.remove('play-docked');
-    // Diagonal launch angle (avoids boring straight bounces)
-    const sectors  = [35, 145, 215, 325];
-    const angle    = (sectors[Math.floor(Math.random() * 4)] + (Math.random() - 0.5) * 30) * Math.PI / 180;
-    _vx = Math.cos(angle) * 2.2;
-    _vy = Math.sin(angle) * 2.2;
-    _playState = 'cleaning';
-    ctx2d.clearRect(0, 0, canvas.width, canvas.height);
-    if (!state.playRafId) state.playRafId = requestAnimationFrame(tickPlayMode);
+  for (const robot of robotFleet) {
+    const rCX = robot.dockCX + robot.dx;
+    const rCY = robot.dockCY + robot.dy;
+    if (Math.hypot(tapX - rCX, tapY - rCY) < Math.max(38 * robot.scale, 22)) {
+      robotFleet.forEach(rb => {
+        rb.el.classList.remove('play-docked');
+        const sectors = [35, 145, 215, 325];
+        const angle = (sectors[Math.floor(Math.random() * 4)] + (Math.random() - 0.5) * 30) * Math.PI / 180;
+        rb.vx = Math.cos(angle) * 2.2;
+        rb.vy = Math.sin(angle) * 2.2;
+      });
+      _playState = 'cleaning';
+      ctx2d.clearRect(0, 0, canvas.width, canvas.height);
+      if (!state.playRafId) state.playRafId = requestAnimationFrame(tickPlayMode);
+      break;
+    }
   }
 });
 
@@ -757,6 +858,7 @@ nextBtn.addEventListener('click', () => {
   } else {
     state.levelIdx   = 0;
     state.starsEarned = 0;
+    clearFleet();
   }
   initLevel();
 });
