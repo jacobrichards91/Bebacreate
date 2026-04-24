@@ -711,8 +711,11 @@ function startPlayMode() {
   captureRobot();
   snapLayer.style.display = 'none';   // hide build layer; fleet clone takes over
   state.playMode = true;
+  document.body.classList.add('play-mode');  // hides parts bin, grows puzzle area
   canvas.style.pointerEvents = 'auto';
   canvas.style.cursor = 'default';
+  // Puzzle area just got bigger — resync canvas dims before using them
+  resizeCanvas();
   ctx2d.clearRect(0, 0, canvas.width, canvas.height);
   // All robots start docked in play mode
   robotFleet.forEach(r => { r.state = 'docked'; r.dx = 0; r.dy = 0; r.vx = 0; r.vy = 0; });
@@ -782,6 +785,7 @@ function _buildDock() {
 function stopPlayMode() {
   if (!state.playMode) return;
   state.playMode = false;
+  document.body.classList.remove('play-mode');   // parts bin comes back for building
   if (state.playRafId) { cancelAnimationFrame(state.playRafId); state.playRafId = null; }
   canvas.style.pointerEvents = 'none';
   canvas.style.cursor = '';

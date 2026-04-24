@@ -117,6 +117,10 @@ body {
   min-height: 0;
 }
 
+/* During play mode, hide the parts bin and give the robots the whole area */
+body.play-mode #tray-wrap { display: none; }
+body.play-mode #puzzle-area { flex: 1 1 auto; }
+
 #trail-canvas {
   position: absolute;
   inset: 0;
