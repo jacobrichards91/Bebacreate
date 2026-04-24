@@ -46,9 +46,10 @@ function calcPlayScale(dockScale, N) {
 }
 
 function applyFleetTransform(robot) {
-  const r  = puzzleArea.getBoundingClientRect();
-  const tx = robot.dockCX - r.width  / 2 + robot.dx;
-  const ty = robot.dockCY - r.height / 2 + robot.dy;
+  // Clone is locked to its capture-time box (snapW × snapH), so the
+  // transform origin doesn't shift when the puzzle area grows in play mode.
+  const tx = robot.dockCX - robot.snapW / 2 + robot.dx;
+  const ty = robot.dockCY - robot.snapH / 2 + robot.dy;
   robot.el.style.transform = `translate(${tx}px,${ty}px) scale(${robot.scale})`;
 }
 
@@ -108,17 +109,25 @@ function updateFleetLayout(animateNew) {
 }
 
 function captureRobot() {
+  // Snapshot the puzzle-area size at build time; the clone keeps this
+  // fixed size so its parts stay put when the container grows in play mode.
+  const r = puzzleArea.getBoundingClientRect();
+  const snapW = r.width, snapH = r.height;
   const clone = snapLayer.cloneNode(true);
   clone.removeAttribute('id');
   clone.classList.add('fleet-robot');
   clone.classList.remove('play-docked');
-  clone.style.cssText = 'position:absolute;inset:0;pointer-events:none;transform-origin:50% 50%;z-index:8;';
+  clone.style.cssText =
+    `position:absolute;left:0;top:0;width:${snapW}px;height:${snapH}px;` +
+    `pointer-events:none;transform-origin:50% 50%;z-index:8;`;
   puzzleArea.appendChild(clone);
   robotFleet.push({
-    el: clone, dockCX: 0, dockCY: DOCK_H / 2,
+    el: clone,
+    snapW, snapH,                  // locked capture-time dimensions
+    dockCX: 0, dockCY: DOCK_H / 2,
     dockScale: 0.28, playScale: 0.85, scale: 1,
     dx: 0, dy: 0, vx: 0, vy: 0,
-    state: 'docked',   // per-robot: 'docked' | 'cleaning' | 'returning'
+    state: 'docked',               // per-robot: 'docked' | 'cleaning' | 'returning'
   });
 }
 
