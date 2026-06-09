@@ -838,6 +838,93 @@ function _drawPlayTrails(r) {
   });
 }
 
+// ── Robot-vs-robot bumper physics ────────────────────────────────────────────
+// Cleaning robots collide with each other (equal-mass elastic bounce) and
+// carom off parked robots without waking them. Returning robots are "beaming
+// home" and pass through everything so they can never be blocked from dock.
+// Arcade rule: collisions set direction, but cruise speed stays constant so
+// nobody ever stalls or rockets off.
+const PLAY_SPEED  = 2.2;   // cruise speed (px/frame); also used at launch
+const BODY_RADIUS = 88;    // collision radius at scale 1 (body disc r≈87)
+
+function _setSpeed(R, s) {
+  const m = Math.hypot(R.vx, R.vy) || 1;
+  R.vx = R.vx / m * s;
+  R.vy = R.vy / m * s;
+}
+
+function handleRobotCollisions() {
+  for (let i = 0; i < robotFleet.length; i++) {
+    const A = robotFleet[i];
+    if (A.state === 'returning') continue;
+    for (let j = i + 1; j < robotFleet.length; j++) {
+      const B = robotFleet[j];
+      if (B.state === 'returning') continue;
+      const aMoves = A.state === 'cleaning';
+      const bMoves = B.state === 'cleaning';
+      if (!aMoves && !bMoves) continue;   // two parked robots never interact
+
+      const ax = A.dockCX + A.dx, ay = A.dockCY + A.dy;
+      const bx = B.dockCX + B.dx, by = B.dockCY + B.dy;
+      const rSum = BODY_RADIUS * (A.scale + B.scale);
+      let nx = bx - ax, ny = by - ay;
+      let d  = Math.hypot(nx, ny);
+      if (d >= rSum) continue;
+      if (d < 0.0001) { nx = 1; ny = 0; d = 1; } else { nx /= d; ny /= d; }
+      const overlap = rSum - d;
+
+      // 1. separate so they never interpenetrate
+      if (aMoves && bMoves) {
+        A.dx -= nx * overlap / 2;  A.dy -= ny * overlap / 2;
+        B.dx += nx * overlap / 2;  B.dy += ny * overlap / 2;
+      } else if (aMoves) {
+        A.dx -= nx * overlap;      A.dy -= ny * overlap;
+      } else {
+        B.dx += nx * overlap;      B.dy += ny * overlap;
+      }
+      if (aMoves) applyFleetTransform(A);
+      if (bMoves) applyFleetTransform(B);
+
+      // 2. bounce — only if actually approaching (prevents re-collision jitter)
+      const rel = (A.vx - B.vx) * nx + (A.vy - B.vy) * ny;
+      if (rel > 0) {
+        if (aMoves && bMoves) {
+          // equal masses: exchange velocity components along the normal
+          A.vx -= rel * nx;  A.vy -= rel * ny;
+          B.vx += rel * nx;  B.vy += rel * ny;
+          _setSpeed(A, PLAY_SPEED);
+          _setSpeed(B, PLAY_SPEED);
+        } else if (aMoves) {
+          // parked robot acts as an immovable bumper — mirror reflection
+          const vn = A.vx * nx + A.vy * ny;
+          A.vx -= 2 * vn * nx;  A.vy -= 2 * vn * ny;
+          _setSpeed(A, PLAY_SPEED);
+        } else {
+          const vn = B.vx * nx + B.vy * ny;
+          B.vx -= 2 * vn * nx;  B.vy -= 2 * vn * ny;
+          _setSpeed(B, PLAY_SPEED);
+        }
+        // contact ripple on the trail canvas (fades with the trail)
+        _drawBumpRing(ax + nx * BODY_RADIUS * A.scale, ay + ny * BODY_RADIUS * A.scale,
+                      14 * Math.max(A.scale, B.scale));
+      }
+    }
+  }
+}
+
+function _drawBumpRing(x, y, radius) {
+  ctx2d.beginPath();
+  ctx2d.arc(x, y, radius, 0, Math.PI * 2);
+  ctx2d.strokeStyle = 'rgba(255,255,255,0.75)';
+  ctx2d.lineWidth = 3;
+  ctx2d.stroke();
+  ctx2d.beginPath();
+  ctx2d.arc(x, y, radius * 0.55, 0, Math.PI * 2);
+  ctx2d.strokeStyle = 'rgba(173,232,244,0.8)';
+  ctx2d.lineWidth = 2;
+  ctx2d.stroke();
+}
+
 function tickPlayMode() {
   if (!state.playMode) return;
   const r = puzzleArea.getBoundingClientRect();
@@ -877,6 +964,7 @@ function tickPlayMode() {
     }
   });
 
+  handleRobotCollisions();
   _drawPlayTrails(r);
 
   if (anyActive) {
@@ -901,8 +989,8 @@ canvas.addEventListener('pointerdown', e => {
       robot.el.classList.remove('play-docked');
       const sectors = [35, 145, 215, 325];
       const angle = (sectors[Math.floor(Math.random() * 4)] + (Math.random() - 0.5) * 30) * Math.PI / 180;
-      robot.vx = Math.cos(angle) * 2.2;
-      robot.vy = Math.sin(angle) * 2.2;
+      robot.vx = Math.cos(angle) * PLAY_SPEED;
+      robot.vy = Math.sin(angle) * PLAY_SPEED;
       robot.state = 'cleaning';
       if (!state.playRafId) state.playRafId = requestAnimationFrame(tickPlayMode);
       break;  // launch at most one per tap
