@@ -19,13 +19,26 @@ const robotFleet = [];  // each robot carries its own .state ('docked'|'cleaning
 
 const SNAP_DIST   = 55;
 const ENCOURAGE   = ['Oops! Try again! 😅', 'Almost! 💪', 'Keep trying! 🌟', 'So close! 🎯', "You've got this! 🤖"];
-const LOGO_PARTS  = ['logoIrobot', 'logoEufy', 'logoRoborock', 'logoTapo', 'logoDreame', 'logoShark', 'logoEcovacs'];
+const LOGO_PARTS  = ['logoIrobot', 'logoEufy', 'logoRoborock', 'logoTapo', 'logoShark', 'logoIlife', 'logoSamsung'];
+
+// Pick a random brand for a level's logo slot. Returns the chosen part id.
+// Marks the level so initLevel doesn't re-roll a logo that was already chosen
+// (the Next button previews the upcoming brand — it must match what loads).
+function randomizeLogo(levelIdx) {
+  const level   = LEVELS[levelIdx];
+  const logoIdx = level.parts.findIndex(id => id.startsWith('logo'));
+  if (logoIdx < 0) return null;
+  level.parts[logoIdx] = LOGO_PARTS[Math.floor(Math.random() * LOGO_PARTS.length)];
+  level._logoLocked = true;
+  return level.parts[logoIdx];
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // Fleet helpers
 // ══════════════════════════════════════════════════════════════════════════════
-// Robot visual bounding box (px, full scale): width=246, height=214
-const ROBOT_VW = 246, ROBOT_VH = 214;
+// Robot visual bounding box (px, full scale) — underside view, wheels inside
+// the body, side brush poking past the rim: width=190, height=185
+const ROBOT_VW = 190, ROBOT_VH = 185;
 const DOCK_H   = 64;    // dock zone height (px) at top of puzzle area
 const DOCK_PAD = 10;    // padding around each individual dock shape
 const MAX_PLAY_SCALE = 0.90;   // cap for big play-mode robots
@@ -307,11 +320,10 @@ window.addEventListener('resize', () => {
 function initLevel() {
   const level = LEVELS[state.levelIdx];
 
-  // Randomise the logo for this level
-  const logoIdx = level.parts.findIndex(id => id.startsWith('logo'));
-  if (logoIdx >= 0) {
-    level.parts[logoIdx] = LOGO_PARTS[Math.floor(Math.random() * LOGO_PARTS.length)];
-  }
+  // Randomise the logo for this level (unless completion already pre-rolled
+  // it so the Next button preview matches)
+  if (!level._logoLocked) randomizeLogo(state.levelIdx);
+  level._logoLocked = false;
 
   // cancel any leftover animations from previous level
   stopPlayMode();
@@ -362,7 +374,10 @@ function initLevel() {
     wrap.style.animationDelay    = `${(i * 0.42) % 2.5}s`;
     wrap.style.animationDuration = `${2.6 + (i * 0.3) % 1.4}s`;
     wrap.setAttribute('aria-label', def.label);
-    wrap.innerHTML = def.svg(LEVEL_COLORS[state.levelIdx]) + `<div class="part-label">${def.label}</div>`;
+    // uid suffixes the SVG gradient ids — inline SVG ids are document-global,
+    // so without this, fleet robots from earlier levels would hijack the
+    // gradients of the current level's parts.
+    wrap.innerHTML = def.svg(LEVEL_COLORS[state.levelIdx], state.levelIdx) + `<div class="part-label">${def.label}</div>`;
     partsTray.appendChild(wrap);
     attachDrag(wrap, partId);
   });
@@ -482,7 +497,7 @@ function doSnap(snapSlotId, el) {
   updatePartsCounter();
 
   const level = LEVELS[state.levelIdx];
-  if (state.snapped.size === level.parts.length) {
+  if (!window.__noComplete && state.snapped.size === level.parts.length) {
     state.completing = true;
     setTimeout(startCompletionSequence, 700);
   }
@@ -608,8 +623,8 @@ async function startCompletionSequence() {
   if (isLast) {
     nextBtn.textContent = 'Play Again 🔄';
   } else {
-    const nextParts = LEVELS[nextIdx].parts;
-    const nextLogoId = nextParts[nextParts.length - 1];
+    // Roll the next level's brand NOW so the button preview matches what loads
+    const nextLogoId = randomizeLogo(nextIdx);
     const nextPng = PART_DEFS[nextLogoId]?.png;
     nextBtn.innerHTML = nextPng
       ? `<img class="next-logo" src="${nextPng}" alt=""> <span>Next →</span>`
@@ -619,11 +634,10 @@ async function startCompletionSequence() {
   nextBtn.style.pointerEvents = 'auto';
 }
 
-// ── Glow the sensor "eyes" on the top sensor part ────────────────────────────
+// ── Glow every sensor window on the assembled robot ──────────────────────────
+// (floor-sensor strip + cliff sensors all carry the .sensor-eye class)
 function glowSensorEyes() {
-  const sensorEl = snapLayer.querySelector('[data-part-id="topSensor"] svg');
-  if (!sensorEl) return;
-  sensorEl.querySelectorAll('.sensor-eye').forEach(eye => {
+  snapLayer.querySelectorAll('.sensor-eye').forEach(eye => {
     eye.style.fill      = '#00FF88';
     eye.style.animation = 'sensorGlow 0.7s ease-in-out infinite';
   });
@@ -913,5 +927,19 @@ nextBtn.addEventListener('click', () => {
 // ══════════════════════════════════════════════════════════════════════════════
 // Boot
 // ══════════════════════════════════════════════════════════════════════════════
+// Dev hooks (harmless in normal play): ?level=N jumps to a level,
+// ?build=1 snaps every part instantly without triggering the completion show.
+const _qs   = new URLSearchParams(location.search);
+const _lvl  = parseInt(_qs.get('level') || '', 10);
+if (_lvl >= 1 && _lvl <= LEVELS.length) state.levelIdx = _lvl - 1;
+
 resizeCanvas();
 initLevel();
+
+if (_qs.get('build') === '1') {
+  window.__noComplete = _qs.get('play') !== '1';
+  LEVELS[state.levelIdx].parts.forEach(pid => {
+    const el = partsTray.querySelector(`[data-part-id="${pid}"]`);
+    if (el) doSnap(pid, el);
+  });
+}

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<base href="/game/">
+<style>
+  body { background:#F5F2ED; font-family: sans-serif; margin:20px; }
+  .robot { position:relative; display:inline-block; }
+  .part  { position:absolute; transform:translate(-50%,-50%); }
+  h3 { margin:8px 0 4px; color:#555; font-size:13px; }
+  #big { width:620px; height:620px; }
+  #big .robot { left:310px; top:310px; transform:scale(3); }
+  .mini { width:200px; height:200px; display:inline-block; position:relative; }
+  .mini .robot { left:100px; top:100px; transform:scale(0.95); }
+</style>
+</head>
+<body>
+<h3>Level 5 — full robot @3x</h3>
+<div id="big"></div>
+<h3>All 10 palettes @1x</h3>
+<div id="palettes"></div>
+<script src="/game/parts.js"></script>
+<script>
+function buildRobot(lvlIdx, partIds) {
+  const r = document.createElement('div');
+  r.className = 'robot';
+  partIds.forEach(pid => {
+    const def = PART_DEFS[pid];
+    const d = document.createElement('div');
+    d.className = 'part';
+    d.style.left = (def.bx || 0) + 'px';
+    d.style.top  = (def.by || 0) + 'px';
+    d.style.zIndex = def.z * 10;
+    d.innerHTML = def.svg(LEVEL_COLORS[lvlIdx], lvlIdx);
+    r.appendChild(d);
+  });
+  return r;
+}
+const FULL = LEVELS[4].parts;          // level 5 = every part type
+document.getElementById('big').appendChild(buildRobot(4, FULL));
+const pal = document.getElementById('palettes');
+for (let i = 0; i < 10; i++) {
+  const m = document.createElement('div');
+  m.className = 'mini';
+  m.appendChild(buildRobot(i, FULL));
+  pal.appendChild(m);
+}
+</script>
+</body>
+</html>

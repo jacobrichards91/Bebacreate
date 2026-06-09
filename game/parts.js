@@ -1,452 +1,479 @@
 // ══════════════════════════════════════════════════════════════════════════════
-// Level color palettes — one per level, applied to every part SVG
+// ROBOT VACUUM — realistic underside ("service bay") view
+//
+// The robot is drawn belly-up, front pointing to the top of the screen —
+// the view you get when you flip a real robot vacuum over. Every part sits
+// where it genuinely lives on a real machine:
+//
+//            ┌── bumper band + brand label (front lip)
+//            │     caster wheel, flanked by gold charging pads
+//            │     floor-sensor window strip
+//   side ────┤     battery door + power button (dead centre)
+//   brush    │     drive wheels in wells, left & right     ├── cliff sensors
+//            │     brush roll in its suction window
+//            └── dust bin curving along the rear rim, filter grille on it
+//
+// Because the charging pads face the front, docked robots meet the charging
+// station at the top of the play area nose-first — like the real thing.
 // ══════════════════════════════════════════════════════════════════════════════
+
+// ── Level palettes — real product finishes ────────────────────────────────────
+// shell    main molded plastic        well    recessed bays (near-black)
+// shellLt  highlight sheen            panel   secondary panel tone
+// shellDk  shadow tone                rubber  tires / roller body
+// trim     seam lines                 accent  side brush, latch, roller fins
+// glass    smoked sensor windows      glow    status / LED tint
 const LEVEL_COLORS = [
-  // 1 — Classic Charcoal
-  { body:'#3A3A3A', light:'#5C5C5C', dark:'#181818', bump:'#484848', wheel:'#161616',
-    accent:'#E85D04', accent2:'#FF9500', wifiCol:'#00B4D8' },
-  // 2 — Ocean Blue
-  { body:'#1B3A5C', light:'#2C5A8C', dark:'#0A1E30', bump:'#1E4878', wheel:'#0A1820',
-    accent:'#00C8E8', accent2:'#00A0C0', wifiCol:'#00E8FF' },
-  // 3 — Forest Green
-  { body:'#1E3E22', light:'#305E36', dark:'#0C1C0E', bump:'#264830', wheel:'#0C160C',
-    accent:'#5CC85C', accent2:'#3EA03E', wifiCol:'#80FF80' },
-  // 4 — Crimson
-  { body:'#4A1818', light:'#6E2828', dark:'#200C0C', bump:'#581C1C', wheel:'#1A0808',
-    accent:'#FF4040', accent2:'#FF8888', wifiCol:'#FF6060' },
-  // 5 — Galaxy Purple
-  { body:'#2C1A4E', light:'#462A78', dark:'#140C22', bump:'#361E60', wheel:'#100A1C',
-    accent:'#C877FF', accent2:'#9944EE', wifiCol:'#AA66FF' },
-  // 6 — Arctic Teal
-  { body:'#0D4A4A', light:'#1A7070', dark:'#042020', bump:'#106060', wheel:'#031818',
-    accent:'#00E5CC', accent2:'#00B8A0', wifiCol:'#00FFEE' },
-  // 7 — Coral Sunset
-  { body:'#5C2010', light:'#8C3818', dark:'#280C06', bump:'#702818', wheel:'#200804',
-    accent:'#FF6B35', accent2:'#FF4500', wifiCol:'#FF9966' },
-  // 8 — Deep Navy
-  { body:'#0A1A3C', light:'#162A5C', dark:'#040C1C', bump:'#0E2048', wheel:'#030810',
-    accent:'#4488FF', accent2:'#2266EE', wifiCol:'#66AAFF' },
-  // 9 — Burnt Copper
-  { body:'#4A2A08', light:'#6E4010', dark:'#200E02', bump:'#58340A', wheel:'#1A0E02',
-    accent:'#E87820', accent2:'#C05A10', wifiCol:'#FFAA44' },
+  // 1 — Graphite (classic Roomba black)
+  { shell:'#33353A', shellLt:'#52555C', shellDk:'#1B1C20', well:'#101114', panel:'#2A2C30',
+    trim:'#0C0D0F', rubber:'#1A1B1E', rubberLt:'#3A3C42', accent:'#B5CC2E', accent2:'#8FA51E', glass:'#15181D', glow:'#37C871' },
+  // 2 — Arctic (Roborock pearl white)
+  { shell:'#D9DCE0', shellLt:'#F2F4F6', shellDk:'#ABB0B8', well:'#23262B', panel:'#C4C8CE',
+    trim:'#878D96', rubber:'#26282C', rubberLt:'#4A4D54', accent:'#00B8C8', accent2:'#0090A0', glass:'#1A1D22', glow:'#00C8E8' },
+  // 3 — Ocean Navy
+  { shell:'#24395A', shellLt:'#3D5A85', shellDk:'#15233A', well:'#0C1320', panel:'#1E3050',
+    trim:'#0A1018', rubber:'#171C26', rubberLt:'#35405A', accent:'#2EC5E8', accent2:'#1898B8', glass:'#0E1620', glow:'#40D8FF' },
+  // 4 — Forest
+  { shell:'#2A4630', shellLt:'#44684C', shellDk:'#182B1D', well:'#0D1810', panel:'#223A28',
+    trim:'#0B130D', rubber:'#161E18', rubberLt:'#34453A', accent:'#7ED957', accent2:'#56B232', glass:'#0F1A12', glow:'#80FF80' },
+  // 5 — Crimson
+  { shell:'#5A2228', shellLt:'#83383F', shellDk:'#3A1216', well:'#1E0A0C', panel:'#4A1C22',
+    trim:'#170709', rubber:'#221214', rubberLt:'#46282C', accent:'#FF8A5E', accent2:'#E8633A', glass:'#1C0E10', glow:'#FF6B6B' },
+  // 6 — Aubergine
+  { shell:'#3D2A56', shellLt:'#5C4480', shellDk:'#271838', well:'#140C1E', panel:'#332246',
+    trim:'#0F0917', rubber:'#1C1424', rubberLt:'#3C3050', accent:'#C77DFF', accent2:'#9C50DC', glass:'#150E1E', glow:'#C890FF' },
+  // 7 — Deep Teal
+  { shell:'#155052', shellLt:'#287678', shellDk:'#0A3234', well:'#051A1B', panel:'#104244',
+    trim:'#031416', rubber:'#0E1E1F', rubberLt:'#2A4648', accent:'#2EE6C8', accent2:'#18B89E', glass:'#081A1B', glow:'#40FFE0' },
+  // 8 — Sunset Copper
+  { shell:'#5C3A20', shellLt:'#855A34', shellDk:'#3B2412', well:'#1E1108', panel:'#4C3019',
+    trim:'#170D05', rubber:'#241710', rubberLt:'#483525', accent:'#FFA040', accent2:'#E07E1E', glass:'#1C120A', glow:'#FFB860' },
+  // 9 — Slate
+  { shell:'#414B58', shellLt:'#626E80', shellDk:'#2A313B', well:'#13171D', panel:'#363F4A',
+    trim:'#0E1115', rubber:'#1C2026', rubberLt:'#3C434E', accent:'#6FA8FF', accent2:'#4880DC', glass:'#11151B', glow:'#80B8FF' },
   // 10 — Champion Gold
-  { body:'#3A2E00', light:'#5C4A00', dark:'#181400', bump:'#483A00', wheel:'#140E00',
-    accent:'#FFD700', accent2:'#C8A800', wifiCol:'#FFE84D' },
+  { shell:'#332C18', shellLt:'#544A2C', shellDk:'#1F1A0D', well:'#0F0C05', panel:'#2A2414',
+    trim:'#0B0904', rubber:'#1A1710', rubberLt:'#3A3424', accent:'#FFD24D', accent2:'#DCA920', glass:'#15110A', glow:'#FFE066' },
 ];
+
+// ── Geometry helpers ──────────────────────────────────────────────────────────
+// Angles in degrees, 0 = straight up (robot front), positive clockwise.
+function _pt(cx, cy, r, deg) {
+  const a = deg * Math.PI / 180;
+  return [cx + r * Math.sin(a), cy - r * Math.cos(a)];
+}
+function _fmt(n) { return (Math.round(n * 10) / 10).toString(); }
+// Annular band between two radii, swept from angle a0 to a1.
+function arcBandPath(cx, cy, rO, rI, a0, a1) {
+  const [ox0, oy0] = _pt(cx, cy, rO, a0), [ox1, oy1] = _pt(cx, cy, rO, a1);
+  const [ix0, iy0] = _pt(cx, cy, rI, a0), [ix1, iy1] = _pt(cx, cy, rI, a1);
+  const large = Math.abs(a1 - a0) > 180 ? 1 : 0;
+  return `M ${_fmt(ox0)},${_fmt(oy0)} A ${rO},${rO} 0 ${large} 1 ${_fmt(ox1)},${_fmt(oy1)} ` +
+         `L ${_fmt(ix1)},${_fmt(iy1)} A ${rI},${rI} 0 ${large} 0 ${_fmt(ix0)},${_fmt(iy0)} Z`;
+}
+// Single arc path (no closing), for seam lines.
+function arcPath(cx, cy, r, a0, a1) {
+  const [x0, y0] = _pt(cx, cy, r, a0), [x1, y1] = _pt(cx, cy, r, a1);
+  const large = Math.abs(a1 - a0) > 180 ? 1 : 0;
+  return `M ${_fmt(x0)},${_fmt(y0)} A ${r},${r} 0 ${large} 1 ${_fmt(x1)},${_fmt(y1)}`;
+}
+// Phillips-head screw.
+function screw(x, y, r, c) {
+  return `<g opacity="0.85">
+    <circle cx="${x}" cy="${y}" r="${r}" fill="${c.shellDk}" stroke="${c.trim}" stroke-width="0.8"/>
+    <circle cx="${x}" cy="${y}" r="${r * 0.62}" fill="${c.panel}"/>
+    <path d="M ${x - r * 0.45},${y} H ${x + r * 0.45} M ${x},${y - r * 0.45} V ${y + r * 0.45}"
+          stroke="${c.trim}" stroke-width="1" stroke-linecap="round"/>
+  </g>`;
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // Part definitions
-//
-// bx / by  — pixel offset from puzzle-area CENTER (= body center).
-//            These are FIXED pixels, not percentages, so parts always sit
-//            correctly relative to the 180×180 body disc regardless of how
-//            wide/tall the puzzle area is on any device.
-//
-// w / h    — SVG element size in px
-// z        — CSS z-index layer (×10) — higher = in front
-// round    — true → circular snap-hint outline
-// svg(c)   — returns SVG string using color palette c
-//
-// Body circle: cx=90, cy=90, r=87 within the 180×180 SVG,
-//              so the visual body edge is ±87 px from the puzzle center.
+// bx/by — pixel offset of the part's CENTRE from the puzzle-area centre.
+//         Body disc: r=87. Front of the robot = negative y (towards the dock).
+// w/h   — SVG size in px.   z — stacking layer (×10).   round — circular hint.
+// svg(c, uid) — markup using palette c; uid suffixes gradient ids so every
+//               level's gradients stay distinct (inline SVG ids are global!).
 // ══════════════════════════════════════════════════════════════════════════════
 const PART_DEFS = {
 
-  // ── Main body disc ──────────────────────────────────────────────────────────
+  // ── Chassis (the molded underside shell) ────────────────────────────────────
   body: {
-    label:'Body', bx:0, by:0, w:180, h:180, z:3, round:true,
-    svg(c) {
-      return `<svg width="180" height="180" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+    label:'Body', bx:0, by:0, w:184, h:184, z:3, round:true,
+    svg(c, uid) {
+      return `<svg width="184" height="184" viewBox="0 0 184 184" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <radialGradient id="bgrd" cx="40%" cy="35%" r="58%">
-            <stop offset="0%"   stop-color="${c.light}"/>
-            <stop offset="45%"  stop-color="${c.body}"/>
-            <stop offset="100%" stop-color="${c.dark}"/>
+          <radialGradient id="bShell${uid}" cx="38%" cy="32%" r="72%">
+            <stop offset="0%"  stop-color="${c.shellLt}"/>
+            <stop offset="42%" stop-color="${c.shell}"/>
+            <stop offset="88%" stop-color="${c.shellDk}"/>
+            <stop offset="100%" stop-color="${c.shellDk}"/>
+          </radialGradient>
+          <radialGradient id="bFloor${uid}" cx="50%" cy="50%" r="50%">
+            <stop offset="60%" stop-color="rgba(30,24,18,0.30)"/>
+            <stop offset="100%" stop-color="rgba(30,24,18,0)"/>
           </radialGradient>
         </defs>
-        <circle cx="90" cy="90" r="87" fill="url(#bgrd)" stroke="${c.dark}" stroke-width="2"/>
-        <circle cx="90" cy="90" r="75" fill="none" stroke="${c.light}" stroke-width="1.2" opacity="0.35"/>
-        <path d="M 42,54 A 56,56 0 0 1 90,32" fill="none" stroke="${c.light}" stroke-width="2.5" stroke-linecap="round" opacity="0.28"/>
+        <ellipse cx="92" cy="99" rx="88" ry="83" fill="url(#bFloor${uid})"/>
+        <circle cx="92" cy="92" r="87" fill="url(#bShell${uid})" stroke="${c.trim}" stroke-width="1.6"/>
+        <path d="${arcPath(92, 92, 85.5, -120, 120)}" fill="none" stroke="${c.shellLt}" stroke-width="1.2" opacity="0.30"/>
+        <circle cx="92" cy="92" r="79" fill="none" stroke="${c.shellDk}" stroke-width="2.4" opacity="0.55"/>
+        <circle cx="92" cy="92" r="77" fill="none" stroke="${c.shellLt}" stroke-width="0.8" opacity="0.18"/>
+        <path d="${arcPath(92, 92, 62, -52, 52)}" fill="none" stroke="${c.trim}" stroke-width="1.1" opacity="0.45"/>
+        <path d="${arcPath(92, 92, 62, 124, 236)}" fill="none" stroke="${c.trim}" stroke-width="1.1" opacity="0.40"/>
+        <path d="${arcPath(92, 92, 70, -38, 38)}" fill="none" stroke="${c.shellLt}" stroke-width="0.8" opacity="0.14"/>
+        ${screw(54, 96, 4, c)}
+        ${screw(130, 96, 4, c)}
+        ${screw(44, 148, 4, c)}
+        ${screw(140, 148, 4, c)}
+        ${screw(92, 178, 3.4, c)}
+        <path d="${arcPath(92, 92, 44, 150, 210)}" fill="none" stroke="${c.shellLt}" stroke-width="0.9" opacity="0.12"/>
       </svg>`;
     }
   },
 
-  // ── Front bumper ────────────────────────────────────────────────────────────
-  // by=-98: flat bottom of D-arc lands ~20 px inside body's top edge (body edge at -87).
-  // z=6: renders on top of body in the overlap region.
+  // ── Bumper — sprung band hugging the front rim ──────────────────────────────
   bumper: {
-    label:'Bumper', bx:0, by:-98, w:162, h:62, z:6,
-    svg(c) {
-      return `<svg width="162" height="62" viewBox="0 0 162 62" xmlns="http://www.w3.org/2000/svg">
+    label:'Bumper', bx:0, by:-62, w:152, h:56, z:6,
+    svg(c, uid) {
+      // body centre sits at (76, 90) in this svg's space
+      const CX = 76, CY = 90;
+      return `<svg width="152" height="56" viewBox="0 0 152 56" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="bugrd" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stop-color="${c.light}"/>
-            <stop offset="100%" stop-color="${c.bump}"/>
+          <linearGradient id="buFace${uid}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"  stop-color="${c.rubberLt}"/>
+            <stop offset="45%" stop-color="${c.rubber}"/>
+            <stop offset="100%" stop-color="${c.trim}"/>
           </linearGradient>
         </defs>
-        <path d="M 8,60 Q 8,4 81,4 Q 154,4 154,60 Z" fill="url(#bugrd)" stroke="${c.dark}" stroke-width="2"/>
-        <path d="M 22,54 Q 22,16 81,16 Q 140,16 140,54" fill="none" stroke="${c.light}" stroke-width="1.5" opacity="0.35"/>
+        <path d="${arcBandPath(CX, CY, 89, 66, -55, 55)}" fill="url(#buFace${uid})" stroke="${c.trim}" stroke-width="1.4"/>
+        <path d="${arcPath(CX, CY, 86.5, -53, 53)}" fill="none" stroke="${c.rubberLt}" stroke-width="1.6" opacity="0.55"/>
+        <path d="${arcPath(CX, CY, 68.5, -52, 52)}" fill="none" stroke="#000" stroke-width="1.6" opacity="0.35"/>
+        <path d="${arcPath(CX, CY, 78, -50, -34)}" stroke="${c.shellLt}" stroke-width="5" stroke-linecap="round" opacity="0.16" fill="none"/>
+        <path d="M ${_pt(CX, CY, 89, -30)[0]},${_pt(CX, CY, 89, -30)[1]} L ${_pt(CX, CY, 66, -30)[0]},${_pt(CX, CY, 66, -30)[1]}" stroke="${c.trim}" stroke-width="1.2" opacity="0.6"/>
+        <path d="M ${_pt(CX, CY, 89, 30)[0]},${_pt(CX, CY, 89, 30)[1]} L ${_pt(CX, CY, 66, 30)[0]},${_pt(CX, CY, 66, 30)[1]}" stroke="${c.trim}" stroke-width="1.2" opacity="0.6"/>
+        <path d="${arcBandPath(CX, CY, 87, 82, -49, -41)}" fill="${c.rubberLt}" opacity="0.5"/>
+        <path d="${arcBandPath(CX, CY, 87, 82, 41, 49)}" fill="${c.rubberLt}" opacity="0.5"/>
       </svg>`;
     }
   },
 
-  // ── Left wheel ──────────────────────────────────────────────────────────────
-  // bx=-101: right edge of wheel is ~10 px inside body left edge (-87).
-  // z=1: behind body disc — body covers the inner 10 px of wheel overlap.
-  // Label says "Wheel" (interchangeable with wheelR — either fits either slot).
-  wheelL: {
-    label:'Wheel', bx:-101, by:0, w:44, h:84, z:1,
-    svg(c) {
-      return `<svg width="44" height="84" viewBox="0 0 44 84" xmlns="http://www.w3.org/2000/svg">
-        <rect x="3" y="3" width="38" height="78" rx="14" fill="${c.wheel}" stroke="${c.dark}" stroke-width="2"/>
-        <rect x="8" y="14" width="28" height="5" rx="2.5" fill="${c.body}" opacity="0.5"/>
-        <rect x="8" y="26" width="28" height="5" rx="2.5" fill="${c.body}" opacity="0.5"/>
-        <rect x="8" y="38" width="28" height="5" rx="2.5" fill="${c.body}" opacity="0.5"/>
-        <rect x="8" y="50" width="28" height="5" rx="2.5" fill="${c.body}" opacity="0.5"/>
-        <rect x="8" y="62" width="28" height="5" rx="2.5" fill="${c.body}" opacity="0.5"/>
-        <path d="M 9,8 L 9,76" stroke="${c.light}" stroke-width="1.5" stroke-linecap="round" opacity="0.25"/>
-      </svg>`;
-    }
-  },
-
-  // ── Right wheel ─────────────────────────────────────────────────────────────
-  // bx=+101: left edge of wheel is ~10 px inside body right edge (+87).
-  // Identical SVG to wheelL — interchangeable.
-  wheelR: {
-    label:'Wheel', bx:+101, by:0, w:44, h:84, z:1,
-    svg(c) {
-      return `<svg width="44" height="84" viewBox="0 0 44 84" xmlns="http://www.w3.org/2000/svg">
-        <rect x="3" y="3" width="38" height="78" rx="14" fill="${c.wheel}" stroke="${c.dark}" stroke-width="2"/>
-        <rect x="8" y="14" width="28" height="5" rx="2.5" fill="${c.body}" opacity="0.5"/>
-        <rect x="8" y="26" width="28" height="5" rx="2.5" fill="${c.body}" opacity="0.5"/>
-        <rect x="8" y="38" width="28" height="5" rx="2.5" fill="${c.body}" opacity="0.5"/>
-        <rect x="8" y="50" width="28" height="5" rx="2.5" fill="${c.body}" opacity="0.5"/>
-        <rect x="8" y="62" width="28" height="5" rx="2.5" fill="${c.body}" opacity="0.5"/>
-        <path d="M 35,8 L 35,76" stroke="${c.light}" stroke-width="1.5" stroke-linecap="round" opacity="0.25"/>
-      </svg>`;
-    }
-  },
-
-  // ── Power / home button ─────────────────────────────────────────────────────
-  // bx=0, by=0: dead center of body disc.  z=8: on top of body surface.
-  powerBtn: {
-    label:'Power Button', bx:0, by:0, w:58, h:58, z:8, round:true,
-    svg(c) {
-      return `<svg width="58" height="58" viewBox="0 0 58 58" xmlns="http://www.w3.org/2000/svg">
+  // ── Caster wheel — the front swivel ─────────────────────────────────────────
+  casterWheel: {
+    label:'Caster Wheel', bx:0, by:-44, w:42, h:42, z:5, round:true,
+    svg(c, uid) {
+      return `<svg width="42" height="42" viewBox="0 0 42 42" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <radialGradient id="pbgrd" cx="40%" cy="35%" r="65%">
-            <stop offset="0%" stop-color="#F4F4F4"/>
-            <stop offset="100%" stop-color="#BEBEBE"/>
+          <radialGradient id="caPl${uid}" cx="40%" cy="34%" r="70%">
+            <stop offset="0%" stop-color="${c.shellLt}"/>
+            <stop offset="100%" stop-color="${c.shellDk}"/>
+          </radialGradient>
+          <linearGradient id="caWh${uid}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${c.rubberLt}"/>
+            <stop offset="55%" stop-color="${c.rubber}"/>
+            <stop offset="100%" stop-color="#000"/>
+          </linearGradient>
+        </defs>
+        <circle cx="21" cy="21" r="20" fill="${c.well}" stroke="${c.trim}" stroke-width="1.3"/>
+        <circle cx="21" cy="20" r="19" fill="none" stroke="#000" stroke-width="1.6" opacity="0.4"/>
+        <circle cx="21" cy="21" r="15.5" fill="url(#caPl${uid})" stroke="${c.trim}" stroke-width="1"/>
+        <rect x="9" y="15.5" width="24" height="11" rx="5.5" fill="url(#caWh${uid})" stroke="${c.trim}" stroke-width="1"/>
+        <path d="M 11,21 H 31" stroke="${c.rubberLt}" stroke-width="1.4" opacity="0.5"/>
+        <rect x="11" y="17" width="8" height="2.2" rx="1.1" fill="#fff" opacity="0.18"/>
+        <circle cx="6.5" cy="21" r="2.2" fill="${c.panel}" stroke="${c.trim}" stroke-width="0.8"/>
+        <circle cx="35.5" cy="21" r="2.2" fill="${c.panel}" stroke="${c.trim}" stroke-width="0.8"/>
+      </svg>`;
+    }
+  },
+
+  // ── Charging pads — brushed gold, flanking the caster (they kiss the dock) ──
+  chargingContacts: {
+    label:'Charging Pads', bx:0, by:-44, w:122, h:28, z:4,
+    svg(c, uid) {
+      const pad = (px) => `
+        <g transform="translate(${px},14)">
+          <rect x="-17" y="-10" width="34" height="20" rx="7" fill="${c.well}" opacity="0.9"/>
+          <rect x="-15" y="-8" width="30" height="16" rx="6" fill="url(#auPad${uid})" stroke="#8A6A14" stroke-width="1.1"/>
+          <rect x="-11" y="-5" width="22" height="3" rx="1.5" fill="#FFE9A0" opacity="0.65"/>
+          <rect x="-11" y="2"  width="22" height="2" rx="1"   fill="#A07818" opacity="0.55"/>
+        </g>`;
+      return `<svg width="122" height="28" viewBox="0 0 122 28" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="auPad${uid}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#F0CE6C"/>
+            <stop offset="50%" stop-color="#D9AF42"/>
+            <stop offset="100%" stop-color="#A8821E"/>
+          </linearGradient>
+        </defs>
+        ${pad(21)}
+        ${pad(101)}
+      </svg>`;
+    }
+  },
+
+  // ── Floor sensor strip — smoked window, three IR eyes ───────────────────────
+  irSensors: {
+    label:'Floor Sensors', bx:0, by:-17, w:88, h:16, z:5,
+    svg(c, uid) {
+      return `<svg width="88" height="16" viewBox="0 0 88 16" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="irGl${uid}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#2A3138"/>
+            <stop offset="30%" stop-color="${c.glass}"/>
+            <stop offset="100%" stop-color="#000"/>
+          </linearGradient>
+        </defs>
+        <rect x="1" y="1" width="86" height="14" rx="7" fill="${c.well}"/>
+        <rect x="2.2" y="2.2" width="83.6" height="11.6" rx="5.8" fill="url(#irGl${uid})" stroke="${c.trim}" stroke-width="0.8"/>
+        <rect x="8" y="3.6" width="34" height="2" rx="1" fill="#fff" opacity="0.10"/>
+        <circle class="sensor-eye" cx="24" cy="8" r="3" fill="#4A1014"/>
+        <circle class="sensor-eye" cx="44" cy="8" r="3" fill="#4A1014"/>
+        <circle class="sensor-eye" cx="64" cy="8" r="3" fill="#4A1014"/>
+        <circle cx="23" cy="7" r="1" fill="#FF5A4A" opacity="0.85"/>
+        <circle cx="43" cy="7" r="1" fill="#FF5A4A" opacity="0.85"/>
+        <circle cx="63" cy="7" r="1" fill="#FF5A4A" opacity="0.85"/>
+      </svg>`;
+    }
+  },
+
+  // ── Power button on the battery door — dead centre ──────────────────────────
+  powerBtn: {
+    label:'Power Button', bx:0, by:12, w:44, h:44, z:8, round:true,
+    svg(c, uid) {
+      return `<svg width="44" height="44" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="pwDome${uid}" cx="38%" cy="30%" r="75%">
+            <stop offset="0%" stop-color="#FAFBFC"/>
+            <stop offset="55%" stop-color="#D8DBDF"/>
+            <stop offset="100%" stop-color="#A9ADB4"/>
+          </radialGradient>
+          <linearGradient id="pwRing${uid}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#E8EAED"/>
+            <stop offset="50%" stop-color="#9CA1A8"/>
+            <stop offset="100%" stop-color="#DDE0E4"/>
+          </linearGradient>
+        </defs>
+        <circle cx="22" cy="22" r="21" fill="${c.panel}" stroke="${c.trim}" stroke-width="1.2"/>
+        <circle cx="22" cy="22" r="18.5" fill="none" stroke="${c.shellDk}" stroke-width="1.4" opacity="0.7"/>
+        ${screw(8, 8, 2.4, c)}
+        ${screw(36, 36, 2.4, c)}
+        <circle cx="22" cy="22" r="14.5" fill="url(#pwRing${uid})" stroke="#787D84" stroke-width="0.9"/>
+        <circle cx="22" cy="22" r="12" fill="url(#pwDome${uid})"/>
+        <path d="M 22,13.5 L 22,21" stroke="#2E3338" stroke-width="2.8" stroke-linecap="round"/>
+        <path d="M 16.2,16.4 A 8.2,8.2 0 1 0 27.8,16.4" fill="none" stroke="#2E3338" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>`;
+    }
+  },
+
+  // ── Side brush — three neat bristle tufts (Roomba-style), front-left ────────
+  sideBrush: {
+    label:'Side Brush', bx:-58, by:-26, w:62, h:62, z:7, round:true,
+    svg(c, uid) {
+      let arms = '';
+      for (let i = 0; i < 3; i++) {
+        const base = i * 120;
+        // a tight fan of three strands per tuft, bound at the hub
+        arms += `<g transform="rotate(${base} 31 31)">
+          <path d="M 31,22 Q 28.6,13 26.5,6.5" fill="none" stroke="${c.accent}" stroke-width="2.6" stroke-linecap="round"/>
+          <path d="M 31,22 Q 31,12 31,5"       fill="none" stroke="${c.accent}" stroke-width="2.6" stroke-linecap="round"/>
+          <path d="M 31,22 Q 33.4,13 35.5,6.5" fill="none" stroke="${c.accent}" stroke-width="2.6" stroke-linecap="round"/>
+        </g>`;
+      }
+      return `<svg width="62" height="62" viewBox="0 0 62 62" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="sbHub${uid}" cx="38%" cy="32%" r="72%">
+            <stop offset="0%" stop-color="#E2E5E9"/>
+            <stop offset="60%" stop-color="#A9AEB5"/>
+            <stop offset="100%" stop-color="#6E737B"/>
           </radialGradient>
         </defs>
-        <circle cx="29" cy="29" r="27" fill="#C8C8C8" stroke="#999" stroke-width="2"/>
-        <circle cx="29" cy="29" r="20" fill="url(#pbgrd)" stroke="#AAAAAA" stroke-width="1.5"/>
-        <path d="M 29,16 L 29,29" stroke="#444" stroke-width="3.5" stroke-linecap="round"/>
-        <path d="M 20.5,20 A 13,13 0 1,0 37.5,20" fill="none" stroke="#444" stroke-width="3" stroke-linecap="round"/>
-        <circle cx="29" cy="37" r="2" fill="#666" opacity="0.45"/>
+        <ellipse cx="31" cy="33" rx="12" ry="11" fill="#000" opacity="0.16"/>
+        ${arms}
+        <circle cx="31" cy="31" r="9.5" fill="url(#sbHub${uid})" stroke="#565B63" stroke-width="1.2"/>
+        <circle cx="31" cy="31" r="3.2" fill="${c.panel}" stroke="${c.trim}" stroke-width="0.9"/>
+        <path d="M 29.6,31 H 32.4 M 31,29.6 V 32.4" stroke="${c.trim}" stroke-width="0.9" stroke-linecap="round"/>
       </svg>`;
     }
   },
 
-  // ── Top sensor dome ─────────────────────────────────────────────────────────
-  // by=-38: upper-front area of body disc (within body circle).
-  // z=9 (highest): always on top.  Sensor "eyes" glow on completion.
-  topSensor: {
-    label:'Top Sensor', bx:0, by:-38, w:48, h:48, z:9, round:true,
-    svg(c) {
-      return `<svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="24" cy="24" r="22" fill="${c.dark}" stroke="${c.body}" stroke-width="2"/>
-        <circle cx="24" cy="24" r="14" fill="${c.body}" stroke="${c.light}" stroke-width="1" opacity="0.6"/>
-        <circle cx="24" cy="24" r="7"  fill="${c.bump}" stroke="${c.light}" stroke-width="1" opacity="0.5"/>
-        <circle class="sensor-eye" cx="17" cy="20" r="4" fill="#222"/>
-        <circle class="sensor-eye" cx="31" cy="20" r="4" fill="#222"/>
-        <circle cx="20" cy="17" r="1.5" fill="${c.light}" opacity="0.55"/>
-      </svg>`;
-    }
-  },
-
-  // ── Wi-Fi / status indicator ────────────────────────────────────────────────
-  // Upper-right of body disc.  z=8.
-  wifiLight: {
-    label:'Wi-Fi Light', bx:+28, by:-32, w:38, h:38, z:8, round:true,
-    svg(c) {
-      return `<svg width="38" height="38" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg">
-        <rect x="2"  y="2"  width="34" height="34" rx="9"  fill="${c.dark}"    stroke="${c.dark}" stroke-width="1.5"/>
-        <rect x="6"  y="6"  width="26" height="26" rx="7"  fill="${c.wifiCol}"/>
-        <path d="M 8,22  Q 19,11 30,22" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity="0.95"/>
-        <path d="M 12,26 Q 19,17 26,26" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity="0.95"/>
-        <circle cx="19" cy="30" r="2.5" fill="#fff"/>
-        <circle cx="10" cy="10" r="2"   fill="#fff" opacity="0.22"/>
-      </svg>`;
-    }
-  },
-
-  // ── Side brush ──────────────────────────────────────────────────────────────
-  // bx=-82, by=+30: center sits at the body's front-left edge (dist ≈ 87 from
-  // body center) so arms visibly spin out from the robot's side.
-  // z=2: behind body disc; inner hub is covered, arms extend beyond body edge.
-  sideBrush: {
-    label:'Side Brush', bx:-82, by:+30, w:66, h:66, z:2, round:true,
-    svg(c) {
-      const arms = [];
-      for (let i = 0; i < 5; i++) {
-        const a  = (i * 72 - 90) * Math.PI / 180;
-        const mx = 33 + Math.cos(a) * 12;
-        const my = 33 + Math.sin(a) * 12;
-        const x2 = 33 + Math.cos(a) * 30;
-        const y2 = 33 + Math.sin(a) * 30;
-        arms.push(`<line x1="${mx.toFixed(1)}" y1="${my.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${c.accent}" stroke-width="8" stroke-linecap="round"/>`);
-      }
-      return `<svg width="66" height="66" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
-        ${arms.join('')}
-        <circle cx="33" cy="33" r="11" fill="${c.accent2}" stroke="${c.accent}" stroke-width="2"/>
-        <circle cx="33" cy="33" r="4.5" fill="${c.light}" opacity="0.7"/>
-      </svg>`;
-    }
-  },
-
-  // ── Main brush roll ─────────────────────────────────────────────────────────
-  // Horizontal roller slightly below body centre.  z=4.
-  brushRoll: {
-    label:'Brush Roll', bx:0, by:+12, w:136, h:34, z:4,
-    svg(c) {
-      const cols = ['#5B8CCC','#888','#5B8CCC','#888','#5B8CCC','#888','#5B8CCC',
-                    '#888','#5B8CCC','#888','#5B8CCC','#888','#5B8CCC'];
-      const stripes = cols.map((col, i) =>
-        `<rect x="${3 + i * 10}" y="5" width="8" height="24" rx="2" fill="${col}" opacity="0.9"/>`
-      ).join('');
-      return `<svg width="136" height="34" viewBox="0 0 136 34" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="134" height="32" rx="6" fill="${c.dark}" stroke="${c.dark}" stroke-width="2"/>
-        ${stripes}
-        <rect x="1"   y="1" width="5" height="32" rx="3" fill="${c.body}"/>
-        <rect x="130" y="1" width="5" height="32" rx="3" fill="${c.body}"/>
-      </svg>`;
-    }
-  },
-
-  // ── Dirt bin door ───────────────────────────────────────────────────────────
-  // Rear panel on body disc.  z=4.
-  dirtBin: {
-    label:'Dirt Bin', bx:0, by:+44, w:114, h:40, z:4,
-    svg(c) {
-      return `<svg width="114" height="40" viewBox="0 0 114 40" xmlns="http://www.w3.org/2000/svg">
-        <rect x="2" y="2" width="110" height="36" rx="7" fill="${c.dark}" stroke="${c.dark}" stroke-width="2"/>
-        <rect x="7" y="7" width="100" height="26" rx="5" fill="${c.body}"/>
-        <rect x="14" y="14" width="86" height="2.5" rx="1.2" fill="${c.light}" opacity="0.5"/>
-        <rect x="14" y="20" width="86" height="2.5" rx="1.2" fill="${c.light}" opacity="0.5"/>
-        <rect x="48" y="27" width="18" height="7" rx="3.5" fill="${c.bump}" stroke="${c.light}" stroke-width="1" opacity="0.8"/>
-        <circle cx="96" cy="14" r="3" fill="${c.accent}" opacity="0.75"/>
-      </svg>`;
-    }
-  },
-
-  // ── Charging contacts ───────────────────────────────────────────────────────
-  // Two gold strips near the bottom of the body disc.  z=4.
-  chargingContacts: {
-    label:'Charging Pins', bx:0, by:+60, w:96, h:28, z:4,
-    svg(c) {
-      return `<svg width="96" height="28" viewBox="0 0 96 28" xmlns="http://www.w3.org/2000/svg">
+  // ── Cliff sensors — two small windows on the front-right shell, each
+  //    aligned to the rim's local tangent so they follow the body curve ───────
+  cliffSensors: {
+    label:'Cliff Sensors', bx:40, by:-48, w:56, h:48, z:6,
+    svg(c, uid) {
+      // svg centre maps to body (40,-48); window positions in body coords:
+      const win = (bxp, byp, rot) => {
+        const x = bxp - 40 + 28, y = byp + 48 + 24;
+        return `
+        <g transform="translate(${x},${y}) rotate(${rot})">
+          <rect x="-10" y="-6.5" width="20" height="13" rx="4.5" fill="${c.well}"/>
+          <rect x="-8" y="-4.5" width="16" height="9" rx="3.5" fill="url(#clGl${uid})" stroke="${c.trim}" stroke-width="0.8"/>
+          <circle class="sensor-eye" cx="0" cy="0" r="2.5" fill="#4A1014"/>
+          <rect x="-5.5" y="-3.4" width="7" height="1.5" rx="0.75" fill="#fff" opacity="0.12"/>
+        </g>`;
+      };
+      return `<svg width="56" height="48" viewBox="0 0 56 48" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="ccgrd" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#E8C060"/>
-            <stop offset="100%" stop-color="#B0881E"/>
+          <linearGradient id="clGl${uid}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#2A3138"/>
+            <stop offset="100%" stop-color="#000"/>
           </linearGradient>
         </defs>
-        <rect x="2"  y="5" width="38" height="18" rx="4" fill="url(#ccgrd)" stroke="#907010" stroke-width="1.5"/>
-        <rect x="7"  y="9" width="28" height="10" rx="2" fill="#F0D070" opacity="0.5"/>
-        <rect x="56" y="5" width="38" height="18" rx="4" fill="url(#ccgrd)" stroke="#907010" stroke-width="1.5"/>
-        <rect x="61" y="9" width="28" height="10" rx="2" fill="#F0D070" opacity="0.5"/>
+        ${win(50, -40, 51)}
+        ${win(30, -56, 28)}
       </svg>`;
     }
   },
 
-  // ── Cliff sensors ───────────────────────────────────────────────────────────
-  // Two sensors at the very bottom edge of the body disc.  z=4.
-  cliffSensors: {
-    label:'Cliff Sensors', bx:0, by:+72, w:86, h:26, z:4,
-    svg(c) {
-      return `<svg width="86" height="26" viewBox="0 0 86 26" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="21" cy="13" r="11" fill="${c.bump}" stroke="${c.dark}" stroke-width="1.5"/>
-        <circle cx="21" cy="13" r="7"  fill="${c.body}"/>
-        <circle cx="19" cy="11" r="3"  fill="${c.light}" opacity="0.6"/>
-        <circle cx="65" cy="13" r="11" fill="${c.bump}" stroke="${c.dark}" stroke-width="1.5"/>
-        <circle cx="65" cy="13" r="7"  fill="${c.body}"/>
-        <circle cx="63" cy="11" r="3"  fill="${c.light}" opacity="0.6"/>
+  // ── Drive wheels — treaded rubber in recessed wells (inside the body!) ──────
+  wheelL: {
+    label:'Wheel', bx:-62, by:8, w:42, h:86, z:5,
+    svg(c, uid) { return wheelSvg(c, uid, 'L'); }
+  },
+  wheelR: {
+    label:'Wheel', bx:62, by:8, w:42, h:86, z:5,
+    svg(c, uid) { return wheelSvg(c, uid, 'R'); }
+  },
+
+  // ── Brush roll — chevron rubber fins in the suction window ──────────────────
+  brushRoll: {
+    label:'Brush Roll', bx:0, by:46, w:80, h:32, z:5,
+    svg(c, uid) {
+      let fins = '';
+      for (let i = 0; i < 6; i++) {
+        const x = 13 + i * 9.2;
+        fins += `<path d="M ${x},6.5 L ${x + 5},16 L ${x},25.5" fill="none" stroke="${c.accent}" stroke-width="2.6" stroke-linecap="round" opacity="0.92"/>`;
+      }
+      return `<svg width="80" height="32" viewBox="0 0 80 32" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="brTube${uid}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${c.rubberLt}"/>
+            <stop offset="45%" stop-color="${c.rubber}"/>
+            <stop offset="100%" stop-color="#000"/>
+          </linearGradient>
+        </defs>
+        <rect x="1" y="1" width="78" height="30" rx="9" fill="${c.well}" stroke="${c.trim}" stroke-width="1.2"/>
+        <rect x="2.5" y="2.5" width="75" height="27" rx="8" fill="none" stroke="#000" stroke-width="1.4" opacity="0.45"/>
+        <rect x="11" y="5" width="58" height="22" rx="11" fill="url(#brTube${uid})"/>
+        ${fins}
+        <rect x="13" y="6.4" width="54" height="3" rx="1.5" fill="#fff" opacity="0.14"/>
+        <rect x="4" y="5" width="7" height="22" rx="2.5" fill="${c.panel}" stroke="${c.trim}" stroke-width="0.9"/>
+        <rect x="69" y="5" width="7" height="22" rx="2.5" fill="${c.panel}" stroke="${c.trim}" stroke-width="0.9"/>
+        <circle cx="7.5" cy="16" r="1.8" fill="${c.shellDk}"/>
+        <circle cx="72.5" cy="16" r="1.8" fill="${c.shellDk}"/>
       </svg>`;
     }
   },
 
-  // ── IR sensor array ─────────────────────────────────────────────────────────
-  // Three sensors on the outer face of the bumper arc.
-  // by=-113: centre is ~15 px above bumper centre (-98), sitting on the arc face.
-  irSensors: {
-    label:'IR Sensors', bx:0, by:-113, w:96, h:28, z:7,
-    svg(c) {
-      return `<svg width="96" height="28" viewBox="0 0 96 28" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="6" width="94" height="16" rx="8" fill="${c.bump}" opacity="0.55"/>
-        <circle cx="16" cy="14" r="10" fill="${c.body}" stroke="${c.light}" stroke-width="1.5"/>
-        <circle cx="16" cy="14" r="6"  fill="${c.dark}"/>
-        <circle cx="14" cy="12" r="3"  fill="#FF2222" opacity="0.85"/>
-        <circle cx="48" cy="14" r="10" fill="${c.body}" stroke="${c.light}" stroke-width="1.5"/>
-        <circle cx="48" cy="14" r="6"  fill="${c.dark}"/>
-        <circle cx="46" cy="12" r="3"  fill="#FF2222" opacity="0.85"/>
-        <circle cx="80" cy="14" r="10" fill="${c.body}" stroke="${c.light}" stroke-width="1.5"/>
-        <circle cx="80" cy="14" r="6"  fill="${c.dark}"/>
-        <circle cx="78" cy="12" r="3"  fill="#FF2222" opacity="0.85"/>
+  // ── Dust bin — curved module hugging the rear rim, see-through window ───────
+  dirtBin: {
+    label:'Dust Bin', bx:0, by:72, w:124, h:28, z:4,
+    svg(c, uid) {
+      // body centre sits at (62, -58) in this svg's space; rear rim arc r=84
+      const dust = [[26,13],[34,17],[44,12],[52,18],[60,14],[68,17],[74,12]]
+        .map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="${1.2 + (i % 3) * 0.5}" fill="${i % 2 ? '#8A8378' : '#6E675C'}" opacity="0.8"/>`).join('');
+      return `<svg width="124" height="28" viewBox="0 0 124 28" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="dbWin${uid}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#3A3F46"/>
+            <stop offset="100%" stop-color="#16181C"/>
+          </linearGradient>
+        </defs>
+        <path d="M 4,2.8 H 120 A 84,84 0 0 1 4,2.8 Z" fill="${c.panel}" stroke="${c.trim}" stroke-width="1.3"/>
+        <path d="M 7,5 H 117 A 80,80 0 0 1 7,5 Z" fill="none" stroke="${c.shellDk}" stroke-width="1" opacity="0.6"/>
+        <rect x="22" y="8" width="58" height="13" rx="6.5" fill="url(#dbWin${uid})" stroke="${c.trim}" stroke-width="0.9" opacity="0.95"/>
+        ${dust}
+        <rect x="26" y="9.4" width="28" height="2.4" rx="1.2" fill="#fff" opacity="0.10"/>
+        <g>
+          <rect x="52" y="1" width="20" height="8" rx="3.5" fill="${c.accent}" stroke="${c.accent2}" stroke-width="1"/>
+          <path d="M 57,3.4 V 6.6 M 62,3.4 V 6.6 M 67,3.4 V 6.6" stroke="${c.accent2}" stroke-width="1.4" stroke-linecap="round"/>
+        </g>
+        ${screw(12, 6.5, 2.6, c)}
+        ${screw(112, 6.5, 2.6, c)}
       </svg>`;
     }
   },
 
-  // ── Filter vent ─────────────────────────────────────────────────────────────
-  // Grille on the right side of the body disc.  z=5.
+  // ── Filter grille — slatted door on the bin's right bay ─────────────────────
   filterVent: {
-    label:'Filter Vent', bx:+42, by:+8, w:62, h:52, z:5,
-    svg(c) {
-      const lines = Array.from({ length: 5 }, (_, i) =>
-        `<line x1="10" y1="${12 + i * 8}" x2="52" y2="${12 + i * 8}" stroke="${c.light}" stroke-width="3" stroke-linecap="round" opacity="0.7"/>`
-      ).join('');
-      return `<svg width="62" height="52" viewBox="0 0 62 52" xmlns="http://www.w3.org/2000/svg">
-        <rect x="2" y="2" width="58" height="48" rx="9" fill="${c.bump}" stroke="${c.dark}" stroke-width="2"/>
-        <rect x="6" y="6" width="50" height="40" rx="7" fill="${c.body}"/>
-        ${lines}
-        <circle cx="10" cy="6"  r="2" fill="${c.bump}"/>
-        <circle cx="52" cy="6"  r="2" fill="${c.bump}"/>
-        <circle cx="10" cy="46" r="2" fill="${c.bump}"/>
-        <circle cx="52" cy="46" r="2" fill="${c.bump}"/>
+    label:'Filter', bx:33, by:71, w:28, h:16, z:5,
+    svg(c, uid) {
+      const slats = [0, 1, 2].map(i =>
+        `<rect x="4" y="${4 + i * 3.2}" width="20" height="1.8" rx="0.9" fill="${c.well}" opacity="0.9"/>`).join('');
+      return `<svg width="28" height="16" viewBox="0 0 28 16" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="26" height="14" rx="4" fill="${c.shell}" stroke="${c.trim}" stroke-width="1"/>
+        <rect x="1.8" y="1.8" width="24.4" height="2.2" rx="1.1" fill="${c.shellLt}" opacity="0.35"/>
+        ${slats}
       </svg>`;
     }
   },
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // Brand logo badges — one per level, snaps onto the bumper face.
-  // bx=0, by=-90: centred on the bumper (bumper centre is by=-98).
-  // z=9: always renders on top of the bumper.
-  // These use fixed brand colours and ignore the level palette (c param).
-  // ══════════════════════════════════════════════════════════════════════════
-
-  // ── iRobot (Level 1) ────────────────────────────────────────────────────────
-  logoIrobot: {
-    label:'iRobot Logo', bx:0, by:-90, w:90, h:32, z:9, png:'irobot.png',
-    svg() {
-      return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
-        <image href="irobot.png" x="5" y="3" width="80" height="26" preserveAspectRatio="xMidYMid meet"/>
-      </svg>`;
-    }
-  },
-
-  // ── eufy (Level 2) ──────────────────────────────────────────────────────────
-  logoEufy: {
-    label:'eufy Logo', bx:0, by:-90, w:90, h:32, z:9, png:'eufy.png',
-    svg() {
-      return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
-        <image href="eufy.png" x="5" y="3" width="80" height="26" preserveAspectRatio="xMidYMid meet"/>
-      </svg>`;
-    }
-  },
-
-  // ── Roborock (Level 3) ──────────────────────────────────────────────────────
-  logoRoborock: {
-    label:'Roborock Logo', bx:0, by:-90, w:90, h:32, z:9, png:'roborock.png',
-    svg() {
-      return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
-        <image href="roborock.png" x="5" y="3" width="80" height="26" preserveAspectRatio="xMidYMid meet"/>
-      </svg>`;
-    }
-  },
-
-  // ── 4th brand (Level 4) — logo.png ──────────────────────────────────────────
-  logoTapo: {
-    label:'Logo', bx:0, by:-90, w:90, h:32, z:9, png:'logo.png',
-    svg() {
-      return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
-        <image href="logo.png" x="5" y="3" width="80" height="26" preserveAspectRatio="xMidYMid meet"/>
-      </svg>`;
-    }
-  },
-
-  // ── Shark (Level 5) ─────────────────────────────────────────────────────────
-  logoDreame: {
-    label:'Shark Logo', bx:0, by:-90, w:90, h:32, z:9, png:'Shark.png',
-    svg() {
-      return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
-        <image href="Shark.png" x="5" y="3" width="80" height="26" preserveAspectRatio="xMidYMid meet"/>
-      </svg>`;
-    }
-  },
-
-  // ── iLife (Level 6) ─────────────────────────────────────────────────────────
-  logoShark: {
-    label:'iLife Logo', bx:0, by:-90, w:90, h:32, z:9, png:'ilife_logo.png',
-    svg() {
-      return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
-        <image href="ilife_logo.png" x="5" y="3" width="80" height="26" preserveAspectRatio="xMidYMid meet"/>
-      </svg>`;
-    }
-  },
-
-  // ── Samsung (Level 7) ───────────────────────────────────────────────────────
-  logoEcovacs: {
-    label:'Samsung Logo', bx:0, by:-90, w:90, h:32, z:9, png:'samsung_logo.png',
-    svg() {
-      return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
-        <image href="samsung_logo.png" x="5" y="3" width="80" height="26" preserveAspectRatio="xMidYMid meet"/>
-      </svg>`;
-    }
-  },
-
-  // ── iRobot again (Level 8) ──────────────────────────────────────────────────
-  logoNeato: {
-    label:'iRobot Logo', bx:0, by:-90, w:90, h:32, z:9, png:'irobot.png',
-    svg() {
-      return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
-        <image href="irobot.png" x="5" y="3" width="80" height="26" preserveAspectRatio="xMidYMid meet"/>
-      </svg>`;
-    }
-  },
-
-  // ── eufy again (Level 9) ────────────────────────────────────────────────────
-  logoBissell: {
-    label:'eufy Logo', bx:0, by:-90, w:90, h:32, z:9, png:'eufy.png',
-    svg() {
-      return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
-        <image href="eufy.png" x="5" y="3" width="80" height="26" preserveAspectRatio="xMidYMid meet"/>
-      </svg>`;
-    }
-  },
-
-  // ── Roborock again (Level 10) ───────────────────────────────────────────────
-  logoDyson: {
-    label:'Roborock Logo', bx:0, by:-90, w:90, h:32, z:9, png:'roborock.png',
-    svg() {
-      return `<svg width="90" height="32" viewBox="0 0 90 32" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="88" height="30" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
-        <image href="roborock.png" x="5" y="3" width="80" height="26" preserveAspectRatio="xMidYMid meet"/>
-      </svg>`;
-    }
-  }
 };
 
+// ── Drive wheel builder (shared by both wheels — they're interchangeable) ─────
+function wheelSvg(c, uid, side) {
+  let treads = '';
+  for (let i = 0; i < 8; i++) {
+    const y = 13 + i * 7.6;
+    treads += `<path d="M 10,${y} L 21,${y + 3.4} L 32,${y}" fill="none" stroke="${c.rubberLt}" stroke-width="2.4" stroke-linecap="round" opacity="0.75"/>`;
+  }
+  return `<svg width="42" height="86" viewBox="0 0 42 86" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="whT${side}${uid}" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#000"/>
+        <stop offset="22%" stop-color="${c.rubber}"/>
+        <stop offset="50%" stop-color="${c.rubberLt}"/>
+        <stop offset="78%" stop-color="${c.rubber}"/>
+        <stop offset="100%" stop-color="#000"/>
+      </linearGradient>
+    </defs>
+    <rect x="1" y="1" width="40" height="84" rx="16" fill="${c.well}" stroke="${c.trim}" stroke-width="1.2"/>
+    <rect x="3" y="3" width="36" height="80" rx="14.5" fill="none" stroke="#000" stroke-width="1.6" opacity="0.5"/>
+    <rect x="7.5" y="8" width="27" height="70" rx="12" fill="url(#whT${side}${uid})" stroke="#000" stroke-width="1"/>
+    ${treads}
+    <rect x="9.5" y="11" width="3" height="64" rx="1.5" fill="#fff" opacity="0.07"/>
+    <rect x="16" y="2.6" width="10" height="4" rx="2" fill="${c.panel}" stroke="${c.trim}" stroke-width="0.8"/>
+  </svg>`;
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
-// Level definitions
+// Brand logos — true-transparency PNGs on a glossy product-label plate.
+// The plate snaps onto the bumper face, like the brand mark on a real machine.
+// ══════════════════════════════════════════════════════════════════════════════
+function makeLogoDef(png, label) {
+  return {
+    label, bx:0, by:-70, w:84, h:26, z:9, png,
+    svg() {
+      return `<svg width="84" height="26" viewBox="0 0 84 26" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="3" width="80" height="22" rx="11" fill="#000" opacity="0.30"/>
+        <rect x="1" y="1" width="82" height="23" rx="11.5" fill="#FAFBFC" stroke="rgba(0,0,0,0.22)" stroke-width="1"/>
+        <rect x="3" y="2.6" width="78" height="9" rx="6" fill="#FFFFFF" opacity="0.65"/>
+        <image href="${png}" x="9" y="3.5" width="66" height="18" preserveAspectRatio="xMidYMid meet"/>
+      </svg>`;
+    }
+  };
+}
+
+PART_DEFS.logoIrobot   = makeLogoDef('irobot.png',       'iRobot Logo');
+PART_DEFS.logoEufy     = makeLogoDef('eufy.png',         'eufy Logo');
+PART_DEFS.logoRoborock = makeLogoDef('roborock.png',     'Roborock Logo');
+PART_DEFS.logoTapo     = makeLogoDef('logo.png',         'Tapo Logo');
+PART_DEFS.logoShark    = makeLogoDef('Shark.png',        'Shark Logo');
+PART_DEFS.logoIlife    = makeLogoDef('ilife_logo.png',   'iLife Logo');
+PART_DEFS.logoSamsung  = makeLogoDef('samsung_logo.png', 'Samsung Logo');
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Level definitions — difficulty grows by adding real parts.
+// The logo slot is randomised per level at load time (see game.js).
 // ══════════════════════════════════════════════════════════════════════════════
 const LEVELS = [
-  { id:1, name:'Easy',           parts:['body','bumper','wheelL','wheelR','powerBtn','logoIrobot'] },
-  { id:2, name:'Getting Harder', parts:['body','bumper','wheelL','wheelR','powerBtn','sideBrush','dirtBin','logoEufy'] },
-  { id:3, name:'Nice Work!',     parts:['body','bumper','wheelL','wheelR','powerBtn','sideBrush','dirtBin','chargingContacts','topSensor','logoRoborock'] },
-  { id:4, name:'Almost Expert!', parts:['body','bumper','wheelL','wheelR','powerBtn','sideBrush','dirtBin','chargingContacts','topSensor','brushRoll','irSensors','logoTapo'] },
-  { id:5,  name:'Vacuum Expert!',  parts:['body','bumper','wheelL','wheelR','powerBtn','sideBrush','dirtBin','chargingContacts','topSensor','brushRoll','irSensors','cliffSensors','wifiLight','filterVent','logoDreame'] },
-  { id:6,  name:'Again!',          parts:['body','bumper','wheelL','wheelR','powerBtn','logoShark'] },
-  { id:7,  name:'Keep Going!',     parts:['body','bumper','wheelL','wheelR','powerBtn','sideBrush','dirtBin','logoEcovacs'] },
-  { id:8,  name:'Almost There!',   parts:['body','bumper','wheelL','wheelR','powerBtn','sideBrush','dirtBin','chargingContacts','topSensor','logoNeato'] },
-  { id:9,  name:'Super Builder!',  parts:['body','bumper','wheelL','wheelR','powerBtn','sideBrush','dirtBin','chargingContacts','topSensor','brushRoll','irSensors','logoBissell'] },
-  { id:10, name:'Champion! 🏆',    parts:['body','bumper','wheelL','wheelR','powerBtn','sideBrush','dirtBin','chargingContacts','topSensor','brushRoll','irSensors','cliffSensors','wifiLight','filterVent','logoDyson'] }
+  { id:1,  name:'Easy',           parts:['body','bumper','wheelL','wheelR','powerBtn','logoIrobot'] },
+  { id:2,  name:'Getting Harder', parts:['body','bumper','wheelL','wheelR','powerBtn','sideBrush','dirtBin','logoEufy'] },
+  { id:3,  name:'Nice Work!',     parts:['body','bumper','wheelL','wheelR','powerBtn','sideBrush','dirtBin','casterWheel','chargingContacts','logoRoborock'] },
+  { id:4,  name:'Almost Expert!', parts:['body','bumper','wheelL','wheelR','powerBtn','sideBrush','dirtBin','casterWheel','chargingContacts','brushRoll','irSensors','logoTapo'] },
+  { id:5,  name:'Vacuum Expert!', parts:['body','bumper','wheelL','wheelR','powerBtn','sideBrush','dirtBin','casterWheel','chargingContacts','brushRoll','irSensors','cliffSensors','filterVent','logoShark'] },
+  { id:6,  name:'Again!',         parts:['body','bumper','wheelL','wheelR','powerBtn','logoIlife'] },
+  { id:7,  name:'Keep Going!',    parts:['body','bumper','wheelL','wheelR','powerBtn','sideBrush','dirtBin','logoSamsung'] },
+  { id:8,  name:'Almost There!',  parts:['body','bumper','wheelL','wheelR','powerBtn','sideBrush','dirtBin','casterWheel','chargingContacts','logoIrobot'] },
+  { id:9,  name:'Super Builder!', parts:['body','bumper','wheelL','wheelR','powerBtn','sideBrush','dirtBin','casterWheel','chargingContacts','brushRoll','irSensors','logoEufy'] },
+  { id:10, name:'Champion! 🏆',   parts:['body','bumper','wheelL','wheelR','powerBtn','sideBrush','dirtBin','casterWheel','chargingContacts','brushRoll','irSensors','cliffSensors','filterVent','logoRoborock'] }
 ];
